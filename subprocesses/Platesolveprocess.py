@@ -350,11 +350,7 @@ if False:
 
 
 
-wslfilename=cal_path + 'wsltemp' + str(time.time()).replace('.','') +'.fits'
-# recombobulate to access through the wsl filesystem
-realwslfilename=wslfilename.split(':')
-realwslfilename[0]=realwslfilename[0].lower()
-realwslfilename='/mnt/'+ realwslfilename[0] + realwslfilename[1]
+solve_filename=cal_path + 'astrometrytemp' + str(time.time()).replace('.','') +'.fits'
 
 # Pick pixel scale range
 if pixscale == None:
@@ -375,7 +371,7 @@ hdufocus.data = hdufocusdata#.astype(np.uint16)#.astype(np.float32)
 hdufocus.header = hduheader
 hdufocus.header["NAXIS1"] = hdufocusdata.shape[0]
 hdufocus.header["NAXIS2"] = hdufocusdata.shape[1]
-hdufocus.writeto(wslfilename, overwrite=True, output_verify='silentfix')
+hdufocus.writeto(solve_filename, overwrite=True, output_verify='silentfix')
 
 del hdufocus
 del hdufocusdata
@@ -386,12 +382,12 @@ astoptions = '--crpix-center --tweak-order 2 --use-source-extractor --scale-unit
 
 plog (astoptions)
 
-os.system('wsl --exec solve-field ' + astoptions + ' ' + str(realwslfilename))
+os.system('solve-field ' + astoptions + ' ' + str(solve_filename))
 
 # If successful, then a file of the same name but ending in solved exists.
-if os.path.exists(wslfilename.replace('.fits','.wcs')):
+if os.path.exists(solve_filename.replace('.fits','.wcs')):
     plog ("IT EXISTS! WCS SUCCESSFUL!")
-    wcs_header=fits.open(wslfilename.replace('.fits','.wcs'))[0].header
+    wcs_header=fits.open(solve_filename.replace('.fits','.wcs'))[0].header
     solve={}
     solve["ra_j2000_hours"] = wcs_header['CRVAL1']/15
     solve["dec_j2000_degrees"] = wcs_header['CRVAL2']
@@ -428,12 +424,12 @@ else:
 
     # plog (astoptions)
 
-    # os.system('wsl --exec solve-field ' + astoptions + ' ' + str(realwslfilename))
+    # os.system('solve-field ' + astoptions + ' ' + str(solve_filename))
 
     # # If successful, then a file of the same name but ending in solved exists.
-    # if os.path.exists(wslfilename.replace('.fits','.wcs')):
+    # if os.path.exists(solve_filename.replace('.fits','.wcs')):
     #     plog ("IT EXISTS! WCS SUCCESSFUL!")
-    #     wcs_header=fits.open(wslfilename.replace('.fits','.wcs'))[0].header
+    #     wcs_header=fits.open(solve_filename.replace('.fits','.wcs'))[0].header
     #     solve={}
     #     solve["ra_j2000_hours"] = wcs_header['CRVAL1']/15
     #     solve["dec_j2000_degrees"] = wcs_header['CRVAL2']

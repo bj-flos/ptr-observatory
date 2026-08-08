@@ -40,7 +40,7 @@ import time
 import numpy as np
 import requests
 import serial
-import win32com.client
+from devices import alpaca_driver
 import traceback
 import threading
 import copy
@@ -99,8 +99,8 @@ class Focuser:
         if self.dummy:
             self.focuser = 'dummy'
         else:
-            win32com.client.pythoncom.CoInitialize()
-            self.focuser = win32com.client.Dispatch(driver)
+            alpaca_driver.CoInitialize()
+            self.focuser = alpaca_driver.dispatch(driver)
             try:
                 self.focuser.Connected = True
             except:
@@ -302,8 +302,8 @@ class Focuser:
     def focuser_update_thread(self):
 
         if not self.dummy:
-            win32com.client.pythoncom.CoInitialize()
-            self.focuser_update_wincom = win32com.client.Dispatch(self.driver)
+            alpaca_driver.CoInitialize()
+            self.focuser_update_wincom = alpaca_driver.dispatch(self.driver)
             try:
                 self.focuser_update_wincom.Connected = True
             except:

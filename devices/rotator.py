@@ -3,7 +3,7 @@ rotator.py  rotator.py  rotator.py  rotator.py  rotator.py  rotator.py
 
 '''
 import time
-import win32com.client
+from devices import alpaca_driver
 import psutil
 from global_yard import g_dev
 
@@ -46,10 +46,10 @@ class Rotator:
                 self.role = role
                 break
 
-        win32com.client.pythoncom.CoInitialize()
+        alpaca_driver.CoInitialize()
 
         self.driver=driver
-        self.rotator = win32com.client.Dispatch(driver)
+        self.rotator = alpaca_driver.dispatch(driver)
         time.sleep(3)
 
         self.rotator.Connected = True
@@ -57,7 +57,7 @@ class Rotator:
         print("Rotator connected,  at:  ", round(self.rotator.TargetPosition, 4))
 
         #The telescope driver also needs to be connected
-        self.rotator_telescope = win32com.client.Dispatch(driver.replace('Rotator','Telescope'))
+        self.rotator_telescope = alpaca_driver.dispatch(alpaca_driver.with_device_type(driver, 'telescope'))
         try:
             self.rotator_telescope.Connected = True
         except:

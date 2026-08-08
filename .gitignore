@@ -32,3 +32,6 @@ output.txt
 aftersourceplots.png
 beforesourceplots.png
 brightstarplots.png
+__pycache__/
+*.pyc
+.env

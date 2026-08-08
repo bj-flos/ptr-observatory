@@ -37,7 +37,7 @@ import threading
 from scipy.integrate import quad
 from glob import glob
 import traceback
-from ptr_utility import plog
+from ptr_utility import plog, kill_process_by_name
 import requests
 #import glob
 
@@ -3002,9 +3002,9 @@ class Sequencer:
 
 
         try:
-            os.system("taskkill /IM FitsLiberator.exe /F")
-            os.system("taskkill /IM Mira_Pro_x64_8.exe /F")
-            os.system("taskkill /IM Aladin.exe /F")
+            kill_process_by_name("FitsLiberator.exe")
+            kill_process_by_name("Mira_Pro_x64_8.exe")
+            kill_process_by_name("Aladin.exe")
         except:
             pass
 

@@ -38,7 +38,7 @@ import math
 from astropy.stats import sigma_clip
 from scipy.spatial import cKDTree
 import pickle
-import win32com.client
+from devices import alpaca_driver
 import bottleneck as bn
 import numpy as np
 import glob
@@ -47,6 +47,7 @@ from astropy.time import Time
 from astropy.io import fits
 from datetime import datetime, date, timedelta, timezone
 import os
+import sys
 import shelve
 import time
 import traceback
@@ -55,7 +56,13 @@ import copy
 import json
 import random
 from astropy import log
-import zwoasi as asi
+try:
+    import zwoasi as asi
+except (ImportError, OSError):
+    # The native ZWO SDK is a Windows-era direct-control path and is not
+    # part of the Alpaca build.  ZWO cameras are reached over Alpaca
+    # instead; this only matters for the 'zwo_native_driver' driver.
+    asi = None
 from scipy import ndimage
 from multiprocessing import Pool
 import multiprocessing
@@ -1023,11 +1030,11 @@ class Camera:
 
 
         if not self.dummy:
-            win32com.client.pythoncom.CoInitialize()
+            alpaca_driver.CoInitialize()
             plog(driver, name)
 
             if not driver == "QHYCCD_Direct_Control" and not driver == 'zwo_native_driver':
-                self.camera = win32com.client.Dispatch(driver)
+                self.camera = alpaca_driver.dispatch(driver)
             else:
                 self.camera = None
         else:
@@ -1157,7 +1164,7 @@ class Camera:
 
         plog("Connecting to:  ", driver)
 
-        if driver[:5].lower() == "ascom":
+        if alpaca_driver.is_alpaca(driver) or driver[:5].lower() == "ascom":
             plog("ASCOM camera is initializing.")
             self._connected = self._ascom_connected
             self._connect = self._ascom_connect
@@ -1216,15 +1223,15 @@ class Camera:
             self.theskyx = True
             self.qhydirect = False
             plog("TheSkyX is connected:  ")
-            # self.app = win32com.client.Dispatch(
+            # self.app = alpaca_driver.dispatch(
             #     "CCDSoft2XAdaptor.ccdsoft5Camera")
 
-            self.app = win32com.client.Dispatch(
+            self.app = alpaca_driver.dispatch(
                 driver)
 
             # Initialise Camera Size here
             # Take a quick cheeky frame to get imagesize
-            tempcamera = win32com.client.Dispatch(self.driver)
+            tempcamera = alpaca_driver.dispatch(self.driver)
             tempcamera.Connect()
             self._stop_expose()
             tempcamera.Frame = 1
@@ -1249,7 +1256,7 @@ class Camera:
 
             try:
                 self.power_box_driver = self.config["switch_driver"]
-                pb = win32com.client.Dispatch(self.power_box_driver)
+                pb = alpaca_driver.dispatch(self.power_box_driver)
                 #breakpoint()  #NB NB make sure only one PowerBox process is running or the next line Throws an exception.
                 pb.connected = True
                 n_switches = pb.MaxSwitch
@@ -1396,6 +1403,11 @@ class Camera:
             self.imagesize_y = int(i_w)
 
         elif driver == 'zwo_native_driver':
+            if asi is None:
+                raise RuntimeError(
+                    "driver 'zwo_native_driver' needs the native ZWO SDK (zwoasi), "
+                    "which this Alpaca build does not install.  Use an Alpaca URL "
+                    "such as 'alpaca://host:11111/camera/0' instead.")
 
             sdk_path = "support_info/ASISDK/lib/x64/ASICamera2.dll"
             asi.init(sdk_path)
@@ -1442,7 +1454,7 @@ class Camera:
             self.theskyx = False
             self.qhydirect = False
             # plog("Maxim is connected:  ", self._connect(True))
-            # self.app = win32com.client.Dispatch("Maxim.Application")
+            # self.app = alpaca_driver.dispatch("Maxim.Application")
             # plog(self.camera)
             # self.camera.SetFullFrame()
             # self.camera.SetFullFrame
@@ -1479,7 +1491,7 @@ class Camera:
             self.theskyx = False
             self.qhydirect = False
             plog("Maxim is connected:  ", self._connect(True))
-            self.app = win32com.client.Dispatch("Maxim.Application")
+            self.app = alpaca_driver.dispatch("Maxim.Application")
             plog(self.camera)
             self.camera.SetFullFrame()
             self.camera.SetFullFrame
@@ -1961,9 +1973,9 @@ class Camera:
 
     def camera_update_thread(self):
 
-        win32com.client.pythoncom.CoInitialize()
+        alpaca_driver.CoInitialize()
 
-        self.camera_update_wincom = win32com.client.Dispatch(self.driver)
+        self.camera_update_wincom = alpaca_driver.dispatch(self.driver)
 
         self.camera_update_wincom.Connect()
 
@@ -1974,8 +1986,8 @@ class Camera:
             if (self.camera_update_timer < time.time() - self.camera_update_period) and not self.updates_paused:
 
                 if self.camera_update_reboot:
-                    win32com.client.pythoncom.CoInitialize()
-                    self.camera_update_wincom = win32com.client.Dispatch(
+                    alpaca_driver.CoInitialize()
+                    self.camera_update_wincom = alpaca_driver.dispatch(
                         self.driver)
 
                     self.camera_update_wincom.Connect()
@@ -2062,7 +2074,7 @@ class Camera:
 
     def theskyx_async_expose(self):
         self.async_exposure_lock = True
-        tempcamera = win32com.client.Dispatch(self.driver)
+        tempcamera = alpaca_driver.dispatch(self.driver)
         tempcamera.Connect()
         timeout_timer=time.time()
 
@@ -4330,7 +4342,7 @@ class Camera:
 
             ## Spin up tha main post_processing_thread
             post_processing_subprocess = subprocess.Popen(
-                ['python','subprocesses/post_exposure_subprocess.py'],
+                [sys.executable,'subprocesses/post_exposure_subprocess.py'],
                 stdin=subprocess.PIPE,
                 stdout=None,
                 stderr=None,
@@ -4373,7 +4385,7 @@ class Camera:
 
                 try:
                     smartstack_subprocess = subprocess.Popen(
-                        ['python', 'subprocesses/SmartStackprocess.py'],
+                        [sys.executable, 'subprocesses/SmartStackprocess.py'],
                         stdin=subprocess.PIPE,
                         stdout=None,
                         bufsize=-1
@@ -4453,7 +4465,7 @@ class Camera:
 
             try:
                 photometry_subprocess = subprocess.Popen(
-                    ['python', 'subprocesses/photometry_process.py'],
+                    [sys.executable, 'subprocesses/photometry_process.py'],
                     stdin=subprocess.PIPE,
                     stdout=None,
                     bufsize=-1
@@ -4542,7 +4554,7 @@ class Camera:
 
                 try:
                     jpeg_subprocess = subprocess.Popen(
-                        ['python', 'subprocesses/mainjpeg.py'],
+                        [sys.executable, 'subprocesses/mainjpeg.py'],
                         stdin=subprocess.PIPE,
                         stdout=None,
                         bufsize=-1
@@ -5789,10 +5801,6 @@ class Camera:
                             try:
                                 # Utilise smartstacks directory as it is a temp directory that gets cleared out
                                 tempdir=self.local_calibration_path + "smartstacks/"
-                                tempdir_in_wsl=tempdir.split(':')
-                                tempdir_in_wsl[0]=tempdir_in_wsl[0].lower()
-                                tempdir_in_wsl='/mnt/'+ tempdir_in_wsl[0] + tempdir_in_wsl[1]
-                                tempdir_in_wsl=tempdir_in_wsl.replace('\\','/')
 
                                 tempfitsname=str(time.time()).replace('.','d') + '.fits'
 
@@ -5822,24 +5830,25 @@ class Camera:
                                 else:
                                     minarea= ((-9.2421 * self.pixscale) + 16.553)/ temp_focus_bin
 
-                                command = (
-                                    f"/home/obs/miniconda3/bin/sourcextractor++"
-                                    f" --detection-image {tempdir_in_wsl}{tempfitsname}"
-                                    f" --detection-image-gain {segain}"
-                                    f" --detection-threshold 5"
-                                    f" --thread-count {2*multiprocessing.cpu_count()}"
-                                    f" --output-catalog-filename {tempdir_in_wsl}{tempfitsname.replace('.fits','cat.fits')}"
-                                    f" --output-catalog-format FITS"
-                                    f" --output-properties PixelCentroid,FluxRadius,AutoPhotometry,PeakValue,KronRadius,ShapeParameters"
-                                    f" --flux-fraction 0.5"
-                                    f" --detection-minimum-area {math.ceil(minarea)}"
-                                    f" --grouping-algorithm MOFFAT"
-                                    f" --tile-size 10000"
-                                    f" --tile-memory-limit 16384"
-                                )
-
-                                # now call wsl bash -ic "<command>"
-                                cmd = ["wsl", "bash", "-ic", command]
+                                # sourcextractor++ runs natively here; override the
+                                # binary with $SOURCEXTRACTORPP if it is not on PATH.
+                                cmd = [
+                                    os.environ.get("SOURCEXTRACTORPP", "sourcextractor++"),
+                                    "--detection-image", f"{tempdir}{tempfitsname}",
+                                    "--detection-image-gain", str(segain),
+                                    "--detection-threshold", "5",
+                                    "--thread-count", str(2*multiprocessing.cpu_count()),
+                                    "--output-catalog-filename",
+                                    f"{tempdir}{tempfitsname.replace('.fits','cat.fits')}",
+                                    "--output-catalog-format", "FITS",
+                                    "--output-properties",
+                                    "PixelCentroid,FluxRadius,AutoPhotometry,PeakValue,KronRadius,ShapeParameters",
+                                    "--flux-fraction", "0.5",
+                                    "--detection-minimum-area", str(math.ceil(minarea)),
+                                    "--grouping-algorithm", "MOFFAT",
+                                    "--tile-size", "10000",
+                                    "--tile-memory-limit", "16384",
+                                ]
 
                                 try:
                                     result = subprocess.run(
@@ -5930,7 +5939,7 @@ class Camera:
                                         )
 
                                         subprocess.run(
-                                            ["python", "subprocesses/focusplots_subprocess.py"],
+                                            [sys.executable, "subprocesses/focusplots_subprocess.py"],
                                             input=plotpickle,
                                             stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE,

@@ -13,7 +13,7 @@ import time
 
 import requests
 import serial
-import win32com.client
+from devices import alpaca_driver
 import numpy as np
 import threading
 import copy
@@ -93,10 +93,24 @@ class FilterWheel:
                 self.dual_fli=False
                 self.custom = False
                 self.dummy=True
+            elif alpaca_driver.is_alpaca(driver):
+                # Generic single Alpaca filter wheel.  alpyca exposes the same
+                # ASCOM members as the old COM wheels, so the ascom paths apply.
+                # NB this must stay ahead of the `"com" in driver` serial-port
+                # test below, which an alpaca:// URL on a .com host would match.
+                alpaca_driver.CoInitialize()
+                self.filter = alpaca_driver.dispatch(driver)
+                self.ascom = True
+                self.maxim = False
+                self.theskyx = False
+                self.dual = False
+                self.custom = False
+                self.dummy = False
+                self.filter.Connected = True
             elif driver == "ASCOM.EFW2.FilterWheel":
                 #breakpoint()
-                win32com.client.pythoncom.CoInitialize()
-                self.filter = win32com.client.Dispatch(driver)
+                alpaca_driver.CoInitialize()
+                self.filter = alpaca_driver.dispatch(driver)
                 self.ascom = True
                 self.maxim = False
                 self.theskyx = False
@@ -151,8 +165,8 @@ class FilterWheel:
 
             elif isinstance(driver, list) and self.dual_filter:
                 # TODO: Fix this, THIS IS A FAST KLUDGE TO GET MRC WORKING, NEED TO VERIFY THE FILTER ORDERING
-                self.filter_back = win32com.client.Dispatch(driver[0])  # Closest to Camera
-                self.filter_front = win32com.client.Dispatch(driver[1])  # Closest to Tel
+                self.filter_back = alpaca_driver.dispatch(driver[0])  # Closest to Camera
+                self.filter_front = alpaca_driver.dispatch(driver[1])  # Closest to Tel
                 self.filter_back.Connected = True
                 self.filter_front.Connected = True
 
@@ -177,8 +191,8 @@ class FilterWheel:
                 self.dual_lco = False
                 self.dual_fli=False
                 #breakpoint()  #We should not get here. WER 20250512
-                fw0 = win32com.client.Dispatch(driver)  # Closest to Camera
-                fw1 = win32com.client.Dispatch(driver)  # Closest to Telescope
+                fw0 = alpaca_driver.dispatch(driver)  # Closest to Camera
+                fw1 = alpaca_driver.dispatch(driver)  # Closest to Telescope
                 plog(fw0, fw1)
 
                 actions0 = fw0.SupportedActions
@@ -239,8 +253,8 @@ class FilterWheel:
                 # NOTE: Changed since FLI Dual code is failing.
                 # This presumes Maxim is filter wheel controller and
                 # it may be the Aux-camera controller as well.
-                win32com.client.pythoncom.CoInitialize()
-                self.filter = win32com.client.Dispatch(driver)
+                alpaca_driver.CoInitialize()
+                self.filter = alpaca_driver.dispatch(driver)
 
                 # Monkey patch in Maxim specific methods.
                 self._connected = self._maxim_connected
@@ -277,10 +291,10 @@ class FilterWheel:
                 self.dual_fli=False
                 self.custom = False
                 self.theskyx = True
-                win32com.client.pythoncom.CoInitialize()
-                self.filter = win32com.client.Dispatch(driver)
+                alpaca_driver.CoInitialize()
+                self.filter = alpaca_driver.dispatch(driver)
                 self.filter.Connect()
-                #com_object = win32com.client.Dispatch(driver)
+                #com_object = alpaca_driver.dispatch(driver)
 
             else:
                 # We default here to setting up a single wheel ASCOM driver.
@@ -295,8 +309,8 @@ class FilterWheel:
                 self.dual_lco = False
                 self.dual_fli=False
                 self.custom = False
-                win32com.client.pythoncom.CoInitialize()
-                self.filter_front = win32com.client.Dispatch(driver)
+                alpaca_driver.CoInitialize()
+                self.filter_front = alpaca_driver.dispatch(driver)
                 self.filter_front.Connected = True
                 plog("Currently QHY RS232 FW")
         else:
@@ -318,9 +332,9 @@ class FilterWheel:
     def filterwheel_update_thread(self):
 
         if not self.driver == "FLI.dual" and not self.driver == "LCO.dual" and not self.dummy:
-            win32com.client.pythoncom.CoInitialize()
+            alpaca_driver.CoInitialize()
 
-            self.filterwheel_update_wincom = win32com.client.Dispatch(self.driver)
+            self.filterwheel_update_wincom = alpaca_driver.dispatch(self.driver)
             try:
                 self.filterwheel_update_wincom.Connected = True
             except:

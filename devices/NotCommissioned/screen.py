@@ -2,7 +2,7 @@
 screen.py  screen.py  screen.py  screen.py  screen.py  screen.py  screen.py
 
 '''
-import win32com.client
+from devices import alpaca_driver
 
 from global_yard import g_dev
 
@@ -12,10 +12,10 @@ class Screen(object):
         g_dev["scr"] = self
         self.config = config["screen"]["screen1"]
         self.device_name = name
-        win32com.client.pythoncom.CoInitialize()
+        alpaca_driver.CoInitialize()
         self.description = self.config["desc"]
         if driver is not None:
-            self.screen = win32com.client.Dispatch(driver)
+            self.screen = alpaca_driver.dispatch(driver)
             self.screen.Connected = True
             self.screen.CalibratorOff()
             self.screen_dark()

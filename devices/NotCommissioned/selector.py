@@ -4,7 +4,7 @@ selector.py  selector.py  selector.py  selector.py  selector.py  selector.py
 '''
 import time
 
-import win32com.client
+from devices import alpaca_driver
 
 from global_yard import g_dev
 
@@ -17,8 +17,8 @@ class Selector:
         self.config = config["selector"]
         if driver is not None:
             self.null_selector = False
-            win32com.client.pythoncom.CoInitialize()
-            self.selector = win32com.client.Dispatch(driver)
+            alpaca_driver.CoInitialize()
+            self.selector = alpaca_driver.dispatch(driver)
             self.selector.Connected = True
             default = int(self.config["selector1"]["default"] + 1)
             self.selector.SetSwitchValue(0, default)

@@ -124,14 +124,10 @@ if not os.path.exists(tempdir):
     os.makedirs(tempdir, mode=0o777)
 
 
-wslfilename=filepath + '/' + filebase
-# recombobulate to access through the wsl filesystem
-realwslfilename=wslfilename.split(':')
-realwslfilename[0]=realwslfilename[0].lower()
-realwslfilename='/mnt/'+ realwslfilename[0] + realwslfilename[1]
+solve_filename=filepath + '/' + filebase
 
 
-plog (realwslfilename)
+plog (solve_filename)
 
 pixlow = 0.97 * pixscale
 pixhigh = 1.03 * pixscale
@@ -145,7 +141,7 @@ hdufocus = fits.PrimaryHDU()
 hdufocus.data = hdufocusdata
 hdufocus.header["NAXIS1"] = hdufocusdata.shape[0]
 hdufocus.header["NAXIS2"] = hdufocusdata.shape[1]
-hdufocus.writeto(wslfilename, overwrite=True, output_verify='silentfix')
+hdufocus.writeto(solve_filename, overwrite=True, output_verify='silentfix')
 
 imageh=hdufocusdata.shape[0]
 imagew=hdufocusdata.shape[1]
@@ -166,28 +162,22 @@ fwhmfilename=filepath + '/' + filebase.replace('.fits','.fwhm')
 
 # # run source extractor on image
 # tempprocess = subprocess.Popen(
-#     ['source-extractor', wslfilename, '-c', 'photometryparams/default.sexfull', '-PARAMETERS_NAME', str('photometryparams/default.paramastrom'),
+#     ['source-extractor', solve_filename, '-c', 'photometryparams/default.sexfull', '-PARAMETERS_NAME', str('photometryparams/default.paramastrom'),
 #      '-CATALOG_NAME', str(tempdir + '/test.cat'), '-SATUR_LEVEL', str(65535), '-GAIN', str(1), '-BACKPHOTO_TYPE','LOCAL', '-DETECT_THRESH', str(1.0), '-ANALYSIS_THRESH',str(1.0),
 #      '-SEEING_FWHM', str(2.0), '-FILTER_NAME', str('photometryparams/sourceex_convs/gauss_2.0_5x5.conv')], stdin=subprocess.PIPE,
 #     stdout=subprocess.PIPE, bufsize=0)
 # tempprocess.wait()
 
 current_working_directory=os.getcwd()
-cwd_in_wsl=current_working_directory.split(':')
-cwd_in_wsl[0]=cwd_in_wsl[0].lower()
-cwd_in_wsl='/mnt/'+ cwd_in_wsl[0] + cwd_in_wsl[1]
-cwd_in_wsl=cwd_in_wsl.replace('\\','/')
-
-tempdir_in_wsl=tempdir.split(':')
-tempdir_in_wsl[0]=tempdir_in_wsl[0].lower()
-tempdir_in_wsl='/mnt/'+ tempdir_in_wsl[0] + tempdir_in_wsl[1]
-tempdir_in_wsl=tempdir_in_wsl.replace('\\','/')
+cwd_native=current_working_directory
 
 
 
-astoptions = '-c '+str(cwd_in_wsl)+'/subprocesses/photometryparams/default.sexfull -PARAMETERS_NAME ' + str(cwd_in_wsl)+'/subprocesses/photometryparams/default.paramastrom -CATALOG_NAME '+ str(tempdir_in_wsl + '/test.cat') + ' -SATUR_LEVEL 65535 -GAIN 1 -BACKPHOTO_TYPE LOCAL -DETECT_THRESH 1.5 -ANALYSIS_THRESH 1.5 -SEEING_FWHM 2.0 -FILTER_NAME ' + str(cwd_in_wsl)+'/subprocesses/photometryparams/sourceex_convs/gauss_2.0_5x5.conv'
 
-os.system('wsl --exec source-extractor ' + str(realwslfilename) + ' ' + astoptions  )
+
+astoptions = '-c '+str(cwd_native)+'/subprocesses/photometryparams/default.sexfull -PARAMETERS_NAME ' + str(cwd_native)+'/subprocesses/photometryparams/default.paramastrom -CATALOG_NAME '+ str(tempdir + '/test.cat') + ' -SATUR_LEVEL 65535 -GAIN 1 -BACKPHOTO_TYPE LOCAL -DETECT_THRESH 1.5 -ANALYSIS_THRESH 1.5 -SEEING_FWHM 2.0 -FILTER_NAME ' + str(cwd_native)+'/subprocesses/photometryparams/sourceex_convs/gauss_2.0_5x5.conv'
+
+os.system('source-extractor ' + str(solve_filename) + ' ' + astoptions  )
 
 
 
@@ -291,59 +281,59 @@ else:
     tweakorder=[2,3]
 
 
-#os.system('wsl --exec mkdir /home/obs/wcstempfiles')
-#os.system('ls ' + str(tempdir_in_wsl))
-#os.system('wsl --exec cp ' + str(tempdir_in_wsl + '/test.fits /home/obs/wcstempfiles/test' + str(nextseq) + '.fits'))
+#os.system('mkdir /home/obs/wcstempfiles')
+#os.system('ls ' + str(tempdir))
+#os.system('cp ' + str(tempdir + '/test.fits /home/obs/wcstempfiles/test' + str(nextseq) + '.fits'))
 
 #save_xylist(acatalog, tempdir + '/test' + str(nextseq) + '.txt')
 
-#plog ('cp ' + str(tempdir_in_wsl + '/test.fits /home/obs/wcstempfiles/test' + str(nextseq) + '.fits'))
+#plog ('cp ' + str(tempdir + '/test.fits /home/obs/wcstempfiles/test' + str(nextseq) + '.fits'))
 
 #astoptions =
-#plog ("wsl --exec solve-field /home/obs/wcstempfiles/test" + str(nextseq) + '.fits' +" -D /home/obs/wcstempfiles --x-column X_IMAGE --y-column Y_IMAGE --sort-column FLUX_AUTO --crpix-center --tweak-order " +str (tweakorder[0]) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 300 --depth 1-100 --overwrite --no-verify --no-plots " )
+#plog ("solve-field /home/obs/wcstempfiles/test" + str(nextseq) + '.fits' +" -D /home/obs/wcstempfiles --x-column X_IMAGE --y-column Y_IMAGE --sort-column FLUX_AUTO --crpix-center --tweak-order " +str (tweakorder[0]) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 300 --depth 1-100 --overwrite --no-verify --no-plots " )
 
 # Try once with tweak-order 2
-#os.system("/usr/local/astrometry/bin/solve-field -D " + str(tempdir) + " --use-source-extractor --crpix-center --tweak-order " +str (tweakorder[0]) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 90 --depth 1-100 --overwrite --no-verify --no-plots " + str(wslfilename))
-#os.system("wsl --exec solve-field  /home/obs/wcstempfiles/test" + str(nextseq) + '.fits' +" -D /home/obs/wcstempfiles --x-column X_IMAGE --y-column Y_IMAGE --sort-column FLUX_AUTO --crpix-center --tweak-order " +str (tweakorder[0]) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 300 --depth 1-100 --overwrite --no-verify --no-plots --skip-solve" )
+#os.system("/usr/local/astrometry/bin/solve-field -D " + str(tempdir) + " --use-source-extractor --crpix-center --tweak-order " +str (tweakorder[0]) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 90 --depth 1-100 --overwrite --no-verify --no-plots " + str(solve_filename))
+#os.system("solve-field  /home/obs/wcstempfiles/test" + str(nextseq) + '.fits' +" -D /home/obs/wcstempfiles --x-column X_IMAGE --y-column Y_IMAGE --sort-column FLUX_AUTO --crpix-center --tweak-order " +str (tweakorder[0]) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 300 --depth 1-100 --overwrite --no-verify --no-plots --skip-solve" )
 #os.system("/usr/bin/astrometry-engine /home/obs/wcstempfiles/test" + str(nextseq) + '.axy')
 
 
-#os.system("wsl --exec build-xylist -i " + tempdir_in_wsl + '/test' + str(nextseq) + '.txt -o ' + tempdir_in_wsl + '/test' + str(nextseq) + '.axy')
+#os.system("build-xylist -i " + tempdir + '/test' + str(nextseq) + '.txt -o ' + tempdir + '/test' + str(nextseq) + '.axy')
 
-#os.system("wsl --exec solve-field  " + tempdir_in_wsl + '/test.fits' +" -D /home/obs/wcstempfiles --x-column X_IMAGE --y-column Y_IMAGE --sort-column FLUX_AUTO --crpix-center --tweak-order " +str (tweakorder[0]) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 300 --depth 1-100 --overwrite --no-verify --no-plots --skip-solve" )
+#os.system("solve-field  " + tempdir + '/test.fits' +" -D /home/obs/wcstempfiles --x-column X_IMAGE --y-column Y_IMAGE --sort-column FLUX_AUTO --crpix-center --tweak-order " +str (tweakorder[0]) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 300 --depth 1-100 --overwrite --no-verify --no-plots --skip-solve" )
 print ()
 if len(acatalog) > 5:
     astoptions = '--crpix-center --tweak-order ' + str(tweakorder[0]) +' --use-source-extractor --scale-units arcsecperpix --scale-low ' + str(pixlow) + ' --scale-high ' + str(pixhigh) + ' --ra ' + str(RAest) + ' --dec ' + str(DECest) + ' --radius 20 --cpulimit ' +str(cpu_limit * 3) + ' --overwrite --no-verify --no-plots --new-fits none'
     print (astoptions)
     plog (astoptions)
 
-    os.system('wsl --exec solve-field ' + astoptions + ' ' + str(realwslfilename)) # + ' > output.txt')
+    os.system('solve-field ' + astoptions + ' ' + str(solve_filename)) # + ' > output.txt')
 
-    plog (wslfilename)
+    plog (solve_filename)
     # Remove temporary fits file
     # try:
-    #     os.remove(wslfilename)
+    #     os.remove(solve_filename)
     # except:
     #     pass
 
-    if os.path.exists (wslfilename.replace('.fits','.wcs')):
+    if os.path.exists (solve_filename.replace('.fits','.wcs')):
         plog ("successfully made wcs!")
     else:
         astoptions = '--crpix-center --tweak-order ' + str(tweakorder[1]) +' --use-source-extractor --scale-units arcsecperpix --scale-low ' + str(pixlow) + ' --scale-high ' + str(pixhigh) + ' --ra ' + str(RAest) + ' --dec ' + str(DECest) + ' --radius 20 --cpulimit ' +str(cpu_limit * 3) + ' --overwrite --no-verify --no-plots --new-fits none'
         plog (astoptions)
 
-        os.system('wsl --exec solve-field ' + astoptions + ' ' + str(realwslfilename))
+        os.system('solve-field ' + astoptions + ' ' + str(solve_filename))
 
-        plog (wslfilename)
+        plog (solve_filename)
 
-        if os.path.exists (wslfilename.replace('.fits','.wcs')):
+        if os.path.exists (solve_filename.replace('.fits','.wcs')):
             plog ("successfully made wcs!")
         else:
             plog ("Not a successful wcs this time :(")
-            with open(wslfilename.replace('.fits','.failed'), 'w') as file:
+            with open(solve_filename.replace('.fits','.failed'), 'w') as file:
                 file.write('failed')
 else:
-    with open(wslfilename.replace('.fits','.failed'), 'w') as file:
+    with open(solve_filename.replace('.fits','.failed'), 'w') as file:
         file.write('failed')
 
 
@@ -362,41 +352,41 @@ sys.exit()
 
 
 
-wslfilename.replace('.fits','.wcs')
+solve_filename.replace('.fits','.wcs')
 
 sys.exit()
 #breakpoint()
 
 if os.path.exists(tempdir + '/test.wcs'):
-    plog("A successful solve for " + wslfilename)
-    # os.remove(wslfilename)
-    # shutil.move(tempdir + '/test.wcs', os.getcwd() + '/' + wslfilename.replace('.fits', '.wcs').replace('.fit', '.wcs'))
+    plog("A successful solve for " + solve_filename)
+    # os.remove(solve_filename)
+    # shutil.move(tempdir + '/test.wcs', os.getcwd() + '/' + solve_filename.replace('.fits', '.wcs').replace('.fit', '.wcs'))
 # os.remove(file)
 else:
     # Try once with tweak-order 3
-    os.system("wsl --exec solve-field /home/obs/wcstempfiles/test" + str(nextseq) + '.fits' +" -D /home/obs/wcstempfiles --x-column X_IMAGE --y-column Y_IMAGE --sort-column FLUX_AUTO --crpix-center --tweak-order " +str (tweakorder[1]) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 300 --depth 1-100 --overwrite --no-verify --no-plots " )
+    os.system("solve-field /home/obs/wcstempfiles/test" + str(nextseq) + '.fits' +" -D /home/obs/wcstempfiles --x-column X_IMAGE --y-column Y_IMAGE --sort-column FLUX_AUTO --crpix-center --tweak-order " +str (tweakorder[1]) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 300 --depth 1-100 --overwrite --no-verify --no-plots " )
     os.system("/usr/bin/astrometry-engine /home/obs/wcstempfiles/test" + str(nextseq) + '.axy')
 
     if os.path.exists(tempdir + '/test.wcs'):
-        plog("A successful solve for " + wslfilename)
-        # os.remove(wslfilename)
-        # shutil.move(tempdir + '/test.wcs', os.getcwd() + '/' + wslfilename.replace('.fits', '.wcs').replace('.fit', '.wcs'))
+        plog("A successful solve for " + solve_filename)
+        # os.remove(solve_filename)
+        # shutil.move(tempdir + '/test.wcs', os.getcwd() + '/' + solve_filename.replace('.fits', '.wcs').replace('.fit', '.wcs'))
     # os.remove(file)
     else:
         # Try once with tweak-order 4
-        os.system("wsl --exec solve-field /home/obs/wcstempfiles/test" + str(nextseq) + '.fits' +" -D /home/obs/wcstempfiles --x-column X_IMAGE --y-column Y_IMAGE --sort-column FLUX_AUTO --crpix-center --tweak-order " +str (4) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 300 --depth 1-100 --overwrite --no-verify --no-plots " )
+        os.system("solve-field /home/obs/wcstempfiles/test" + str(nextseq) + '.fits' +" -D /home/obs/wcstempfiles --x-column X_IMAGE --y-column Y_IMAGE --sort-column FLUX_AUTO --crpix-center --tweak-order " +str (4) + " --width " +str(imagew) +" --height " +str(imageh) +" --scale-units arcsecperpix --scale-low " + str(pixlow) + " --scale-high " + str(pixhigh) + " --scale-units arcsecperpix --ra " + str(RAest) + " --dec " + str(DECest) + " --radius 10 --cpulimit 300 --depth 1-100 --overwrite --no-verify --no-plots " )
         os.system("/usr/bin/astrometry-engine /home/obs/wcstempfiles/test" + str(nextseq) + '.axy')
 
         if os.path.exists(tempdir + '/test.wcs'):
-            plog("A successful solve for " + wslfilename)
-            # os.remove(wslfilename)
-            # shutil.move(tempdir + '/test.wcs', os.getcwd() + '/' + wslfilename.replace('.fits', '.wcs').replace('.fit', '.wcs'))
+            plog("A successful solve for " + solve_filename)
+            # os.remove(solve_filename)
+            # shutil.move(tempdir + '/test.wcs', os.getcwd() + '/' + solve_filename.replace('.fits', '.wcs').replace('.fit', '.wcs'))
         # os.remove(file)
         else:
 
 
-            plog("A failed solve for " + wslfilename)
-            # os.remove(wslfilename)
+            plog("A failed solve for " + solve_filename)
+            # os.remove(solve_filename)
 
 
 
@@ -423,12 +413,12 @@ else:
 
 # plog (astoptions)
 
-# os.system('wsl --exec solve-field ' + astoptions + ' ' + str(realwslfilename))
+# os.system('solve-field ' + astoptions + ' ' + str(solve_filename))
 
 # # If successful, then a file of the same name but ending in solved exists.
-# if os.path.exists(wslfilename.replace('.fits','.wcs')):
+# if os.path.exists(solve_filename.replace('.fits','.wcs')):
 #     plog ("IT EXISTS! WCS SUCCESSFUL!")
-#     wcs_header=fits.open(wslfilename.replace('.fits','.wcs'))[0].header
+#     wcs_header=fits.open(solve_filename.replace('.fits','.wcs'))[0].header
 #     solve={}
 #     solve["ra_j2000_hours"] = wcs_header['CRVAL1']/15
 #     solve["dec_j2000_degrees"] = wcs_header['CRVAL2']
@@ -459,12 +449,12 @@ else:
 
 #     plog (astoptions)
 
-#     os.system('wsl --exec solve-field ' + astoptions + ' ' + str(realwslfilename))
+#     os.system('solve-field ' + astoptions + ' ' + str(solve_filename))
 
 #     # If successful, then a file of the same name but ending in solved exists.
-#     if os.path.exists(wslfilename.replace('.fits','.wcs')):
+#     if os.path.exists(solve_filename.replace('.fits','.wcs')):
 #         plog ("IT EXISTS! WCS SUCCESSFUL!")
-#         wcs_header=fits.open(wslfilename.replace('.fits','.wcs'))[0].header
+#         wcs_header=fits.open(solve_filename.replace('.fits','.wcs'))[0].header
 #         solve={}
 #         solve["ra_j2000_hours"] = wcs_header['CRVAL1']/15
 #         solve["dec_j2000_degrees"] = wcs_header['CRVAL2']

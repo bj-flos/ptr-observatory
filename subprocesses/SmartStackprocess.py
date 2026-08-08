@@ -525,7 +525,7 @@ if not os.path.exists(jpeg_path + smartstackid + '.busy'):
 
                     crosscorrelation_subprocess_array.append(
                         subprocess.Popen(
-                            ['python', 'subprocesses/crosscorrelation_subprocess.py'],
+                            [sys.executable, 'subprocesses/crosscorrelation_subprocess.py'],
                             stdin=subprocess.PIPE,
                             stdout=None,
                             bufsize=-1

@@ -3,13 +3,13 @@ switch.py  switch.py  switch.py  switch.py  switch.py  switch.py  switch.py
 
 '''
 
-import win32com.client
+from devices import alpaca_driver
 
 
 class Switch:
     def __init__(self, driver: str, name: str):
         self.name = name
-        self.switch = win32com.client.Dispatch(driver)
+        self.switch = alpaca_driver.dispatch(driver)
         self.switch.Connected = True
 
         print("switch connected.")

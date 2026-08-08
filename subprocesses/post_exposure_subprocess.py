@@ -611,9 +611,9 @@ if substack:
             crosscorrel_filename_waiter.append(temporary_substack_directory + output_filename)
 
             if normal_operation:
-                cross_proc=subprocess.Popen(['python','subprocesses/crosscorrelation_subprocess.py'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,bufsize=0)
+                cross_proc=subprocess.Popen([sys.executable,'subprocesses/crosscorrelation_subprocess.py'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,bufsize=0)
             else:
-                cross_proc=subprocess.Popen(['python','crosscorrelation_subprocess.py'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,bufsize=0)
+                cross_proc=subprocess.Popen([sys.executable,'crosscorrelation_subprocess.py'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,bufsize=0)
 
             if False:
                 #NB set this path to create test pickle for makejpeg routine.
@@ -981,7 +981,7 @@ try:
         else:
 
             p = subprocess.Popen(
-                ["python", "subprocesses/Platesolver_SingleImageFullReduction.py"],
+                [sys.executable, "subprocesses/Platesolver_SingleImageFullReduction.py"],
                 stdin = subprocess.PIPE,             # so we can feed it our pickledata
                 stdout = subprocess.DEVNULL,         # drop its stdout
                 stderr = subprocess.DEVNULL,         # drop its stderr
@@ -1829,7 +1829,7 @@ try:
         #sys.exit()
 
         fz_proc=subprocess.Popen(
-            ['python','fz_archive_file.py',picklefilename],
+            [sys.executable,'fz_archive_file.py',picklefilename],
             cwd=localcalibrationdirectory + 'smartstacks',
             stdin=subprocess.PIPE,
             stdout=None,
@@ -2046,7 +2046,7 @@ try:
             pickle.dump(picklepayload, open(localcalibrationdirectory + 'smartstacks/'+picklefilename,'wb'))
 
             local_popen=subprocess.Popen(
-                ['python','local_reduce_file_subprocess.py',picklefilename],
+                [sys.executable,'local_reduce_file_subprocess.py',picklefilename],
                 cwd=localcalibrationdirectory + 'smartstacks',
                 stdin=subprocess.PIPE,
                 stdout=None,

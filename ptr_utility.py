@@ -14,6 +14,7 @@ Conversion constants could be CAP-case as in R2D, R2AS, H2S, etc.
 
 
 import os
+import time
 import shutil
 import ephem
 from ptr_config import site_config
@@ -176,3 +177,98 @@ def loud(*args, **kwargs):
     text = centered_text('ATTENTION')
     plog(*args, **kwargs, color=bright_green, process=text)
 plog.loud = loud
+
+
+def kill_process_by_name(process_name):
+    """Terminate any running process whose image name matches ``process_name``.
+
+    Cross-platform replacement for ``os.system('taskkill /IM name /F')``, which
+    only exists on Windows.  Matching is case-insensitive and ignores a trailing
+    '.exe', so the Windows-style names already used at the call sites keep
+    working unchanged.  Returns the number of processes terminated.
+    """
+    import psutil
+
+    wanted = process_name.lower()
+    if wanted.endswith(".exe"):
+        wanted = wanted[:-4]
+
+    victims = []
+    for proc in psutil.process_iter(["pid", "name"]):
+        try:
+            name = (proc.info.get("name") or "").lower()
+            if name.endswith(".exe"):
+                name = name[:-4]
+            if name == wanted:
+                victims.append(proc)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+
+    for proc in victims:
+        try:
+            proc.terminate()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+    try:
+        gone, alive = psutil.wait_procs(victims, timeout=5)
+        for proc in alive:
+            try:
+                proc.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+    except Exception:
+        pass
+
+    return len(victims)
+
+
+DEFAULT_PWI4_EXE = (
+    r"C:\Program Files (x86)\PlaneWave Instruments"
+    r"\PlaneWave Interface 4\PWI4.exe"
+)
+
+
+def start_pwi4():
+    """Start the PlaneWave Interface 4 application, if we are on a platform
+    that has it.
+
+    PWI4 is a Windows-only application.  On Linux the mount is reached over
+    Alpaca and PWI4 -- if used at all -- runs on the mount PC, so there is
+    nothing for us to launch.  Override the executable with $PWI4_EXE.
+    Returns True if a launch was actually attempted.
+    """
+    import platform
+    import subprocess
+
+    if platform.system() != "Windows":
+        plog(
+            "PWI4 auto-start skipped: PWI4 is Windows-only and this is %s.  "
+            "Expecting PWI4 to be running already (set $PWI4_HOST if it is on "
+            "another machine)." % platform.system()
+        )
+        return False
+
+    exe = os.environ.get("PWI4_EXE", DEFAULT_PWI4_EXE)
+    subprocess.Popen('"%s"' % exe, shell=True)
+    time.sleep(10)
+    return True
+
+
+def connect_pwi4_mount(timeout=10):
+    """Ask a running PWI4 to connect to the mount.
+
+    Tolerates PWI4 being absent -- on Linux it may legitimately not be there --
+    and reports rather than raising, so device startup can carry on and fail
+    with a more specific error later if the mount really is unreachable.
+    """
+    import urllib.request
+
+    host = os.environ.get("PWI4_HOST", "localhost")
+    url = "http://%s:8220/mount/connect" % host
+    try:
+        urllib.request.urlopen(url, timeout=timeout)
+        return True
+    except Exception as exc:
+        plog("Could not reach PWI4 at %s (%s)." % (url, exc))
+        return False

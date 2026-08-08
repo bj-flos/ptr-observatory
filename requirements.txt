@@ -28,4 +28,5 @@ image_registration
 joblib
 bottleneck
 psutil
-pywin32
+# pywin32 removed: the COM device layer was replaced by ASCOM Alpaca.
+alpyca

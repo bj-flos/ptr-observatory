@@ -60,7 +60,7 @@ from devices.rotator import Rotator
 from devices.sequencer import Sequencer
 from ptr_events import Events
 from siteproxy import SiteProxy
-from ptr_utility import plog
+from ptr_utility import plog, kill_process_by_name, start_pwi4, connect_pwi4_mount
 from astropy.utils.exceptions import AstropyUserWarning
 import warnings
 
@@ -363,7 +363,7 @@ class Observatory:
         if name != "tbo2": # saves a few seconds for the simulator site.
             for process in processes:
                 try:
-                    os.system(f'taskkill /IM "{process}" /F')
+                    kill_process_by_name(process)
                 except Exception:
                     pass
 
@@ -828,9 +828,8 @@ class Observatory:
                 # Instantiate the device object based on its type
                 if dev_type == "mount":
                     if "PWI4" in driver:
-                        subprocess.Popen('"C:\Program Files (x86)\PlaneWave Instruments\PlaneWave Interface 4\PWI4.exe"', shell=True)
-                        time.sleep(10)
-                        urllib.request.urlopen("http://localhost:8220/mount/connect")
+                        start_pwi4()
+                        connect_pwi4_mount()
                         time.sleep(5)
                     device = Mount(driver, device_name, self.config, self, tel=True)
                 elif dev_type == "rotator":
@@ -3267,7 +3266,7 @@ class Observatory:
                             )
 
                             platesolve_subprocess = subprocess.run(
-                                ["python", "subprocesses/Platesolveprocess.py"],
+                                [sys.executable, "subprocesses/Platesolveprocess.py"],
                                 input=pickledata,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
@@ -4768,8 +4767,8 @@ class Observatory:
             if self.devices["main_cam"].theskyx:
                 self.devices["main_cam"].updates_paused=True
 
-            os.system("taskkill /IM TheSkyX.exe /F")
-            os.system("taskkill /IM TheSky64.exe /F")
+            kill_process_by_name("TheSkyX.exe")
+            kill_process_by_name("TheSky64.exe")
             time.sleep(5)
             retries=0
 

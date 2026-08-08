@@ -35,7 +35,7 @@ list here retained in user account.)
 
 """
 
-import win32com.client
+from devices import alpaca_driver
 import datetime
 import traceback
 import copy
@@ -48,7 +48,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_sun,  FK5, get_body#, ICRS
 import math
 import ephem
-from ptr_utility import plog
+from ptr_utility import plog, kill_process_by_name, start_pwi4, connect_pwi4_mount
 import time
 import requests
 import subprocess
@@ -224,7 +224,7 @@ class Mount:
 
         self.role = 'mount' # since we'll only ever have one mount, it automatically gets the role of 'mount'
 
-        win32com.client.pythoncom.CoInitialize()
+        alpaca_driver.CoInitialize()
 
         # Set the dummy flag
         if driver == 'dummy':
@@ -235,7 +235,7 @@ class Mount:
 
         if not self.dummy:
 
-            self.mount = win32com.client.Dispatch(driver)
+            self.mount = alpaca_driver.dispatch(driver)
 
             try:
                 self.mount.Connected = True
@@ -1076,9 +1076,9 @@ class Mount:
 
 
         if not self.dummy:
-            win32com.client.pythoncom.CoInitialize()
+            alpaca_driver.CoInitialize()
 
-            self.mount_update_wincom = win32com.client.Dispatch(self.driver)
+            self.mount_update_wincom = alpaca_driver.dispatch(self.driver)
             try:
                 self.mount_update_wincom.Connected = True
             except:
@@ -1090,8 +1090,8 @@ class Mount:
             try:
                 # update every so often, but update rapidly if slewing.
                 if self.mount_update_reboot and not self.dummy:
-                    win32com.client.pythoncom.CoInitialize()
-                    self.mount_update_wincom = win32com.client.Dispatch(self.driver)
+                    alpaca_driver.CoInitialize()
+                    self.mount_update_wincom = alpaca_driver.dispatch(self.driver)
                     try:
                         self.mount_update_wincom.Connected = True
                     except:
@@ -1392,11 +1392,10 @@ class Mount:
                         if self.driver=='ASCOM.PWI4.Telescope':
                             plog ("Too long on a PWI4. Rebooting PWI4 and getting it to get where it is meant to.")
 
-                            os.system('taskkill /IM PWI4.exe /F')
+                            kill_process_by_name('PWI4.exe')
                             time.sleep(10)
-                            subprocess.Popen('"C:\Program Files (x86)\PlaneWave Instruments\PlaneWave Interface 4\PWI4.exe"', shell=True)
-                            time.sleep(10)
-                            urllib.request.urlopen("http://localhost:8220/mount/connect")
+                            start_pwi4()
+                            connect_pwi4_mount()
                             time.sleep(5)
 
                             self.mount_update_reboot=True
