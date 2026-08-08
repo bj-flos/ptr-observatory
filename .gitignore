@@ -35,3 +35,4 @@ brightstarplots.png
 __pycache__/
 *.pyc
 .env
+.venv/

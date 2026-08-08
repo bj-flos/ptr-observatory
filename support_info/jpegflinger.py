@@ -5,6 +5,7 @@ Created on Tue Jun 25 18:49:23 2024
 @author: observatory
 """
 import requests
+from ptr_endpoints import PTR_API_ROOT
 # Incorporate better request retry strategy
 from requests.adapters import HTTPAdapter, Retry
 reqs = requests.Session()
@@ -38,7 +39,7 @@ def add_margin(pil_img, top, right, bottom, left, color):
 def authenticated_request(method: str, uri: str, payload: dict = None) -> str:
 
     # Populate the request parameters. Include data only if it was sent.
-    base_url="https://api.photonranch.org/api"
+    base_url=f"{PTR_API_ROOT}"
     request_kwargs = {
         "method": method,
         "timeout" : 10,

@@ -20,7 +20,13 @@ import copy
 import traceback
 from global_yard import g_dev
 from ptr_utility import plog
-import support_info.FLIsdk.fli_dual_wheel
+try:
+    import support_info.FLIsdk.fli_dual_wheel as fli_dual_wheel
+except (ImportError, OSError, AttributeError):
+    # The FLI dual-wheel SDK is a Windows-only ctypes wrapper around
+    # libfli.dll.  Only the FLI dual-filter-wheel path needs it; every
+    # other wheel, including any Alpaca one, works without it.
+    fli_dual_wheel = None
 # We only use Observatory in type hints, so use a forward reference to prevent circular imports
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -104,6 +110,7 @@ class FilterWheel:
                 self.maxim = False
                 self.theskyx = False
                 self.dual = False
+                self.dual_fli = False
                 self.custom = False
                 self.dummy = False
                 self.filter.Connected = True
@@ -125,7 +132,12 @@ class FilterWheel:
                 #breakpoint()
                 # Import dual wheel instruction set
 
-                self.fli_wheelids=support_info.FLIsdk.fli_dual_wheel.initialize_wheels()
+                if fli_dual_wheel is None:
+                    raise RuntimeError(
+                        "the FLI dual filter wheel needs the Windows-only FLI SDK "
+                        "(libfli.dll), which is not available on this platform.  Use "
+                        "an Alpaca filter wheel instead.")
+                self.fli_wheelids=fli_dual_wheel.initialize_wheels()
                 print ("Initialised FLI wheels: " + str(self.fli_wheelids))
 
 
@@ -373,7 +385,12 @@ class FilterWheel:
                             filter_dict[self.config["fli_wheel_one_id"]]=self.filter_selections[1]
 
                             print ("changing filters to " +str(filter_dict))
-                            support_info.FLIsdk.fli_dual_wheel.set_positions(filter_dict)
+                            if fli_dual_wheel is None:
+                                raise RuntimeError(
+                                    "the FLI dual filter wheel needs the Windows-only FLI SDK "
+                                    "(libfli.dll), which is not available on this platform.  Use "
+                                    "an Alpaca filter wheel instead.")
+                            fli_dual_wheel.set_positions(filter_dict)
                             print ("filters changed")
                             #breakpoint()
 

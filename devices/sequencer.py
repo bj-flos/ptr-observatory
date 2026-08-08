@@ -39,6 +39,7 @@ from glob import glob
 import traceback
 from ptr_utility import plog, kill_process_by_name
 import requests
+from ptr_endpoints import PTR_API_ROOT
 #import glob
 
 # We only use Observatory in type hints, so use a forward reference to prevent circular imports
@@ -102,7 +103,7 @@ def ra_fix_h(ra):
 def authenticated_request(method: str, uri: str, payload: dict = None) -> str:
 
     # Populate the request parameters. Include data only if it was sent.
-    base_url="https://api.photonranch.org/api"
+    base_url=f"{PTR_API_ROOT}"
     request_kwargs = {
         "method": method,
         "timeout" : 10,

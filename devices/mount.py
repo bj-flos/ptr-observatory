@@ -51,6 +51,7 @@ import ephem
 from ptr_utility import plog, kill_process_by_name, start_pwi4, connect_pwi4_mount
 import time
 import requests
+from ptr_endpoints import PTR_STATUS_ROOT
 import subprocess
 import urllib
 import os
@@ -474,8 +475,8 @@ class Mount:
 
         if not self.dummy:
             self.EquatorialSystem = self.mount.EquatorialSystem
-            self.previous_pier_side = self.mount.sideOfPier
-            self.pier_side_last_check = self.mount.sideOfPier
+            self.previous_pier_side = self.mount.SideOfPier
+            self.pier_side_last_check = self.mount.SideOfPier
 
         else:
 
@@ -503,7 +504,7 @@ class Mount:
         # asking ASCOM/MOUNT
         if not self.dummy:
             self.rapid_park_indicator=copy.deepcopy(self.mount.AtPark)
-            self.rapid_pier_indicator=copy.deepcopy(self.mount.sideOfPier)
+            self.rapid_pier_indicator=copy.deepcopy(self.mount.SideOfPier)
 
             #DIRECT MOUNT POSITION READ #3
             self.right_ascension_directly_from_mount = copy.deepcopy(self.mount.RightAscension)
@@ -567,7 +568,7 @@ class Mount:
         # not keep calling the mount to ask for it, which is slow and prone
         # to an ascom crash.
         try:
-            self.pier_side = self.mount.sideOfPier  # 0 == Tel Looking West, is flipped.
+            self.pier_side = self.mount.SideOfPier  # 0 == Tel Looking West, is flipped.
             self.can_report_pierside = True
         except Exception:
             plog ("Mount cannot report pierside. Setting the code not to ask again, assuming default pointing west.")
@@ -1300,7 +1301,7 @@ class Mount:
 
                                 if not self.rapid_park_indicator:
                                     if self.can_report_pierside:
-                                        self.rapid_pier_indicator=copy.deepcopy(self.mount_update_wincom.sideOfPier)
+                                        self.rapid_pier_indicator=copy.deepcopy(self.mount_update_wincom.SideOfPier)
                                         self.current_tracking_state=self.mount_update_wincom.Tracking
                                         try:
                                             if not (self.pier_side_last_check==self.rapid_pier_indicator):
@@ -1431,7 +1432,7 @@ class Mount:
 
 
             wema_name=g_dev['obs'].config['wema_name']
-            uri_status = f"https://status.photonranch.org/status/{wema_name}/enclosure"
+            uri_status = f"{PTR_STATUS_ROOT}/{wema_name}/enclosure"
 
 
 

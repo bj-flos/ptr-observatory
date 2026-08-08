@@ -1258,17 +1258,17 @@ class Camera:
                 self.power_box_driver = self.config["switch_driver"]
                 pb = alpaca_driver.dispatch(self.power_box_driver)
                 #breakpoint()  #NB NB make sure only one PowerBox process is running or the next line Throws an exception.
-                pb.connected = True
+                pb.Connected = True
                 n_switches = pb.MaxSwitch
                 #To inspect, try:
                 # for ii in range(n_switches):
                 #     time.sleep(0.1)
-                #     print(ii, pb.getSwitchValue(ii))
+                #     print(ii, pb.GetSwitchValue(ii))
 
                 #First we need to turn everything on
                 for ii in range(n_switches):
                     time.sleep(0.1)
-                    pb.setSwitchValue(ii, 1)
+                    pb.SetSwitchValue(ii, 1)
                 #Now camera off
                 pb.SetSwitchValue(6, 0)
                 print("Cam power is off for 5 sec.")
@@ -1277,7 +1277,7 @@ class Camera:
                 print("Cam power is turning on ")
                 pb.SetSwitchValue(6, 1)
                 time.sleep(10)
-                plog("Cam power is, after 10 sec:  ", pb.getSwitchValue(6))
+                plog("Cam power is, after 10 sec:  ", pb.GetSwitchValue(6))
 
                 #A double check
                 # for ii in range(n_switches):
@@ -2568,7 +2568,13 @@ class Camera:
         except:
             plog("failed at getting the CCD temperature")
             temptemp = 999.9
-        return temptemp, 999.9, 999.9
+        try:
+            # Not every ASCOM camera reports cooler power; the other backends
+            # return 0 when it is unavailable.
+            pwm = self.camera.CoolerPower if self.camera.CanGetCoolerPower else 0
+        except Exception:
+            pwm = 0
+        return temptemp, 999.9, 999.9, pwm
 
     def _ascom_cooler_on(self):
         return (

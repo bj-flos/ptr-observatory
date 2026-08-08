@@ -39,6 +39,7 @@ import time
 
 import numpy as np
 import requests
+from ptr_endpoints import PTR_JOBS_ROOT
 import serial
 from devices import alpaca_driver
 import traceback
@@ -553,7 +554,7 @@ class Focuser:
                 Note: value of -1 used when no estimate is provided.
         """
 
-        url = "https://jobs.photonranch.org/jobs/updatejobstatus"
+        url = f"{PTR_JOBS_ROOT}/updatejobstatus"
         body = {
             "site": self.obsid,
             "ulid": cmd_id,

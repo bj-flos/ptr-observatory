@@ -45,6 +45,7 @@ import bottleneck as bn
 import numpy as np
 
 import requests
+from ptr_endpoints import PTR_API_ROOT, PTR_JOBS_ROOT, PTR_LOGS_ROOT, PTR_STATUS_ROOT
 import urllib.request
 import traceback
 import psutil
@@ -122,7 +123,7 @@ def findProcessIdByName(processName):
 
 def authenticated_request(method: str, uri: str, payload: dict = None) -> str:
     # Populate the request parameters. Include data only if it was sent.
-    base_url = "https://api.photonranch.org/api"
+    base_url = f"{PTR_API_ROOT}"
     request_kwargs = {
         "method": method,
         "timeout": 10,
@@ -138,7 +139,7 @@ def authenticated_request(method: str, uri: str, payload: dict = None) -> str:
 def send_status(obsy, column, status_to_send):
     """Sends an update to the status endpoint."""
 
-    uri_status = f"https://status.photonranch.org/status/{obsy}/status/"
+    uri_status = f"{PTR_STATUS_ROOT}/{obsy}/status/"
     payload = {"statusType": str(column), "status": status_to_send}
     # if column == 'weather':
     #     print("Did not send spurious weathr report.")
@@ -623,7 +624,7 @@ class Observatory:
         try:
             reqs.request(
                 "POST",
-                "https://jobs.photonranch.org/jobs/getnewjobs",
+                f"{PTR_JOBS_ROOT}/getnewjobs",
                 data=json.dumps({"site": self.name}),
                 timeout=30,
             ).json()
@@ -870,7 +871,7 @@ class Observatory:
     def get_wema_config(self):
         """ Fetch the WEMA config from AWS """
         wema_config = None
-        url = f"https://api.photonranch.org/api/{self.wema_name}/config/"
+        url = f"{PTR_API_ROOT}/{self.wema_name}/config/"
         try:
             response = requests.get(url, timeout=20)
             wema_config = response.json()['configuration']
@@ -966,7 +967,7 @@ class Observatory:
         """
 
         self.scan_request_timer = time.time()
-        url_job = "https://jobs.photonranch.org/jobs/getnewjobs"
+        url_job = f"{PTR_JOBS_ROOT}/getnewjobs"
         body = {"site": self.name}
         cmd = {}
         # Get a list of new jobs to complete (this request
@@ -3037,7 +3038,7 @@ class Observatory:
             if not self.sendtouser_queue.empty():
                 while not self.sendtouser_queue.empty():
                     (p_log, p_level) = self.sendtouser_queue.get(block=False)
-                    url_log = "https://logs.photonranch.org/logs/newlog"
+                    url_log = f"{PTR_LOGS_ROOT}/newlog"
                     body = json.dumps(
                         {
                             "site": self.config["obs_id"],
@@ -4117,7 +4118,7 @@ class Observatory:
                             pipe_request["payload"] = payload
                             pipe_request["sender"] = self.name
 
-                            uri_status = "https://api.photonranch.org/api/pipe/enqueue"
+                            uri_status = f"{PTR_API_ROOT}/pipe/enqueue"
                             try:
 
                                 response = requests.post(uri_status,json=pipe_request, timeout=20)# allow_redirects=False, headers=close_headers)
@@ -4495,7 +4496,7 @@ class Observatory:
         """
         Requests the current enclosure status from the related WEMA.
         """
-        uri_status = f"https://status.photonranch.org/status/{self.wema_name}/enclosure/"
+        uri_status = f"{PTR_STATUS_ROOT}/{self.wema_name}/enclosure/"
         try:
             aws_enclosure_status = reqs.get(uri_status, timeout=20)
             aws_enclosure_status = aws_enclosure_status.json()
@@ -4584,7 +4585,7 @@ class Observatory:
         Requests the current enclosure status from the related WEMA.
         """
 
-        uri_status = f"https://status.photonranch.org/status/{self.wema_name}/weather/"
+        uri_status = f"{PTR_STATUS_ROOT}/{self.wema_name}/weather/"
 
         try:
             aws_weather_status = reqs.get(uri_status, timeout=20)
@@ -4752,7 +4753,7 @@ class Observatory:
         # jobs don't send the scope go wildly.
         reqs.request(
             "POST",
-            "https://jobs.photonranch.org/jobs/getnewjobs",
+            f"{PTR_JOBS_ROOT}/getnewjobs",
             data=json.dumps({"site": self.name}),
             timeout=30,
         ).json()

@@ -4,6 +4,7 @@ from dateutil import parser
 import time
 import json
 import requests
+from ptr_endpoints import PTR_CALENDAR_ROOT, PTR_PROJECTS_ROOT
 import threading
 from devices.sequencer_helpers import is_valid_utc_iso
 from ptr_utility import plog
@@ -149,7 +150,7 @@ class NightlyScheduleManager:
         - end_time (str): get events ending before this time. string formatted as YYYY-mm-ddTHH:MM:SSZ
         """
 
-        calendar_update_url = "https://calendar.photonranch.org/calendar/siteevents"
+        calendar_update_url = f"{PTR_CALENDAR_ROOT}/siteevents"
 
         if start_time is None or not is_valid_utc_iso(start_time):
             start_time = datetime.fromtimestamp(self.schedule_start).isoformat().split(".")[0] + "Z"
@@ -196,7 +197,7 @@ class NightlyScheduleManager:
         if 'project_id' not in event or event['project_id'] in null_project_ids:
             return None
 
-        url_proj = "https://projects.photonranch.org/projects/get-project"
+        url_proj = f"{PTR_PROJECTS_ROOT}/get-project"
         request_body = json.dumps({
             "project_name": event['project_id'].split('#')[0],
             "created_at": event['project_id'].split('#')[1],
