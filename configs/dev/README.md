@@ -5,11 +5,20 @@ stand-ins for the Photon Ranch cloud services. No traffic reaches LCO.
 
 ## What it talks to
 
-| Service | Where | What it is |
+Everything below is LCOGT handler code running locally against DynamoDB Local
+(`127.0.0.1:8001`) via `PTR/ptr-local-stack`, not a reimplementation.
+
+| Port | Service | Repo |
 |---|---|---|
-| config API | `127.0.0.1:8091` | `PTR/photonranch-api/local_api.py` — LCOGT's **real** `api.site_configs` handlers over DynamoDB Local (`127.0.0.1:8001`) |
-| status, jobs, logs, calendar, projects | `127.0.0.1:8090` | `PTR/ptr-api-stub` — inert stand-ins; separate services in production, not part of photonranch-api |
-| devices | `127.0.0.1:11111` | ASCOM Alpaca Simulators (camera, telescope, focuser, filter wheel, rotator) |
+| 8091 | config API | `PTR/photonranch-api` |
+| 8092 | status (enclosure, weather, site status) | `PTR/photonranch-status` |
+| 8093 | jobs (the command queue obs.py polls) | `PTR/photonranch-jobs` |
+| 8094 | calendar | `PTR/photonranch-calendar` |
+| 8095 | projects | `PTR/photonranch-projects` |
+| 8090 | **only** `/logs/newlog` | `PTR/ptr-api-stub` (no LCOGT repo implements it) |
+| 11111 | devices | ASCOM Alpaca Simulators |
+
+No traffic reaches LCO.
 
 ## Bringing it up
 
@@ -20,7 +29,10 @@ stand-ins for the Photon Ranch cloud services. No traffic reaches LCO.
     # 2. config API (needs DynamoDB Local on 8001 first)
     cd ~/PTR/photonranch-api && python3 local_api.py &
 
-    # 3. the other services
+    # 3. status / jobs / calendar / projects (real LCOGT handlers)
+    cd ~/PTR/ptr-local-stack && ./run_stack.sh start && python3 seed_status.py dev
+
+    # 3b. the stub, for /logs/newlog only
     cd ~/PTR/ptr-api-stub && setsid nohup node ./server.js >> stub.log 2>&1 < /dev/null &
 
     # 4. register the WEMA config this obs belongs to, once
