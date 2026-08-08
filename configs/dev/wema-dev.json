@@ -1,0 +1,18 @@
+{
+  "instance_type": "wema",
+  "wema_name": "dev",
+  "name": "Linux Alpaca development enclosure",
+  "latitude": 34.4326,
+  "longitude": -119.8630,
+  "elevation": 7,
+  "reference_ambient": 15,
+  "reference_pressure": 1013,
+  "time_offset": -8,
+  "timezone": "PST",
+  "TZ_database_name": "America/Los_Angeles",
+  "eve_cool_down_open": -65.0,
+  "morn_close_and_park": 32.0,
+  "events": {
+    "day_directory": "dev-local"
+  }
+}
