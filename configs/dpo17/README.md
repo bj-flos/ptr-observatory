@@ -27,7 +27,7 @@ No traffic reaches LCO.
     ./ascom.alpaca.simulators --urls http://127.0.0.1:11111 &
 
     # 2. config API (needs DynamoDB Local on 8001 first)
-    cd ~/PTR/photonranch-api && python3 local_api.py &
+    cd ~/PTR/ptr-local-stack && python3 local_api.py ../photonranch-api &
 
     # 3. status / jobs / calendar / projects (real LCOGT handlers)
     cd ~/PTR/ptr-local-stack && ./run_stack.sh start && python3 seed_status.py DPO
