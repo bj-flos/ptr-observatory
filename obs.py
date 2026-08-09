@@ -2496,14 +2496,14 @@ class Observatory:
                         plog.warn(
                             "Last connection was over twenty minutes ago. Running a further test or two"
                         )
-                        if test_connect(host="http://dev.photonranch.org"):
+                        if test_connect(host=PTR_API_ROOT):
                             plog.warn(
-                                "Connected to photonranch.org, so it must be that Google is down. Connection is live."
+                                "Connected to the configured API, so it must be that Google is down. Connection is live."
                             )
                             self.time_of_last_live_net_connection = time.time()
                         elif test_connect(host="http://aws.amazon.com"):
                             plog.warn(
-                                "Connected to aws.amazon.com. Can't connect to Google or photonranch.org though."
+                                "Connected to aws.amazon.com. Can't connect to Google or the configured API though."
                             )
                             self.time_of_last_live_net_connection = time.time()
                         else:
@@ -3083,7 +3083,7 @@ class Observatory:
 
                         full_log_path = self.nightlylog_path + nightlogfilename
 
-                        readable = datetime.datetime.fromtimestamp(timestamp, datetime.UTC).strftime('%Y-%m-%d %H:%M:%S UTC')
+                        readable = datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
                         
                         with open(full_log_path, "a") as f:
                             f.write(readable + ',' + str(timestamp) + ',' +log +'\n')

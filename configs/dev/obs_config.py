@@ -48,14 +48,13 @@ site_config = {
 
     # Name, local and owner stuff
     'name': 'Linux Alpaca development site',
-    'airport_code':  'BWT: Wynyard',
-    'location': 'Development workstation, Linux',
+    'airport_code':  'ALM: Alamogordo',
+    'location': 'Mayhill, New Mexico, USA',
     'telescope_description': 'n.a.',
     'observatory_url': '',   #  This is meant to be optional
     'observatory_logo': None,   # I expect these will ususally end up as .png format icons
     'mpc_code':  'ZZ23',    #This is made up for now.
-    'description':  '''Burnie.
-                    ''',    #  i.e, a multi-line text block supplied and eventually mark-up formatted by the owner.
+    'description':  '''Photon Ranch Dimension Point''',    #  i.e, a multi-line text block supplied and eventually mark-up formatted by the owner.
     'owner':  ['google-oauth2|112401903840371673242'],  # WER,  Or this can be
                                                         # some aws handle.
     'owner_alias': ['WER', 'TELOPS'],
