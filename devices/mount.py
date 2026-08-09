@@ -1363,6 +1363,13 @@ class Mount:
                 plog ("some type of glitch in the mount thread: " + str(e))
                 plog(traceback.format_exc())
 
+                # A dropped Alpaca connection raises on every read from here
+                # on, and nothing else clears it. The top of this loop already
+                # knows how to recover -- re-dispatch the device and reconnect
+                # -- so ask for that rather than spinning on the error.
+                if not self.dummy and alpaca_driver.is_alpaca(self.driver):
+                    self.mount_update_reboot = True
+
     def wait_for_slew(self, wait_after_slew=True, wait_for_dome=True, wait_for_dome_after_direct_slew=True):
 
 

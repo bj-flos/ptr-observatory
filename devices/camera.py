@@ -2577,9 +2577,15 @@ class Camera:
         return temptemp, 999.9, 999.9, pwm
 
     def _ascom_cooler_on(self):
-        return (
-            self.camera.CoolerOn
-        )  # NB NB NB This would be a good place to put a warming protector
+        try:
+            return (
+                self.camera.CoolerOn
+            )  # NB NB NB This would be a good place to put a warming protector
+        except Exception:
+            # Called from the safety loop, so a dropped connection is otherwise
+            # reported thousands of times with nothing trying to fix it.
+            alpaca_driver.reconnect(self.camera, name='camera', log=plog)
+            raise
 
     def _ascom_set_cooler_on(self):
         self.camera.CoolerOn = True
