@@ -47,7 +47,7 @@ site_config = {
 
 
     # Name, local and owner stuff
-    'name': 'Linux Alpaca development site',
+    'name': 'Photon Ranch Dimension Point',
     'airport_code':  'ALM: Alamogordo',
     'location': 'Mayhill, New Mexico, USA',
     'telescope_description': 'n.a.',
