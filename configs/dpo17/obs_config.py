@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Linux development site for ptr-observatory.
+Photon Ranch Dimension Point (DPO17) -- Linux/Alpaca site.
 
 Derived from configs/tbo2 (the all-dummy simulator site).  Differences:
 
   * every driver is an Alpaca URL served by the ASCOM Alpaca Simulators
     running on 127.0.0.1:11111, rather than a COM ProgID or 'dummy'
   * all paths are POSIX, under /home/bj/ptr
-  * identity is dev1 / wema 'dev', so it cannot be mistaken for a real site
+  * identity is DPO17 / wema 'DPO', so it cannot be mistaken for a real site
 
-Selected by the file PTR/hostnamedev.txt sitting alongside the repo, which
-ptr_config.py reads to pick configs/dev.
+Selected by the file PTR/hostnamedpo17.txt sitting alongside the repo, which
+ptr_config.py reads to pick configs/dpo17.
 """
 #                                                                                        1         1         1       1
 #        1         2         3         4         6         7         8         9         0         1         2       2
@@ -18,7 +18,7 @@ ptr_config.py reads to pick configs/dev.
 
 
 
-obs_id = 'dev1' # THIS IS THE NAME OF THIS OBSERVATORY
+obs_id = 'DPO17' # THIS IS THE NAME OF THIS OBSERVATORY
                     #\\192.168.1.57\SRO10-Roof  r:
                     #SRO-Weather (\\192.168.1.57) w:
                     #Username: wayne_rosingPW: 29yzpe
@@ -29,10 +29,10 @@ site_config = {
     'instance_type' : 'obs',
     'instance_is_private': False,
     # If this is not a wema, this specifies the wema that this obs is connected to
-    'wema_name' : 'dev',
+    'wema_name' : 'DPO',
     # The unique identifier for this obs
 
-    'obs_id': 'dev1',
+    'obs_id': 'DPO17',
 
     # --- keys the current obs.py/sequencer.py require that the tbo2 config
     # --- this was derived from predates.  Values follow aro1.
@@ -50,7 +50,7 @@ site_config = {
     'name': 'Photon Ranch Dimension Point',
     'airport_code':  'ALM: Alamogordo',
     'location': 'Mayhill, New Mexico, USA',
-    'telescope_description': 'n.a.',
+    'telescope_description': 'CDK17 0.43m f/6.8 (simulated)',
     'observatory_url': '',   #  This is meant to be optional
     'observatory_logo': None,   # I expect these will ususally end up as .png format icons
     'mpc_code':  'ZZ23',    #This is made up for now.
@@ -227,7 +227,7 @@ site_config = {
     #
     # This should only be modified if the configuration in configdb changes.
     'configdb_instrument_mapping': {
-        'dev1_instrument': {
+        'dpo17_instrument': {
             'mount': 'SimMount',
             'camera': 'SimZWO1600',
             'filter_wheel': 'SimFW',
@@ -332,7 +332,7 @@ site_config = {
             'parent': 'mount1',
             'name': 'Main OTA',
             'telescop': 'eco1',
-            'ptrtel': 'CDK17',
+            'ptrtel': 'DPO17',
             'desc':  'Simulated Telescope',
             'driver': None,                     #  Essentially this device is informational.  It is mostly about the optics.
             'collecting_area': 100000,

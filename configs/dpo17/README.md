@@ -1,4 +1,4 @@
-# Linux dev site (`dev1`)
+# Photon Ranch Dimension Point (`DPO17`)
 
 Runs `obs.py` on Linux with every device driven over ASCOM Alpaca, against local
 stand-ins for the Photon Ranch cloud services. No traffic reaches LCO.
@@ -30,13 +30,13 @@ No traffic reaches LCO.
     cd ~/PTR/photonranch-api && python3 local_api.py &
 
     # 3. status / jobs / calendar / projects (real LCOGT handlers)
-    cd ~/PTR/ptr-local-stack && ./run_stack.sh start && python3 seed_status.py dev
+    cd ~/PTR/ptr-local-stack && ./run_stack.sh start && python3 seed_status.py DPO
 
     # 3b. the stub, for /logs/newlog only
     cd ~/PTR/ptr-api-stub && setsid nohup node ./server.js >> stub.log 2>&1 < /dev/null &
 
     # 4. register the WEMA config this obs belongs to, once
-    curl -X PUT --data-binary @wema-dev.json http://127.0.0.1:8091/dev/config
+    curl -X PUT --data-binary @wema-dpo.json http://127.0.0.1:8091/DPO/config
 
     # 5. run
     cd ~/PTR/ptr-observatory && ./.venv/bin/python obs.py
@@ -48,14 +48,15 @@ which is exactly what you do not want on a dev box.
 ## How this site gets selected
 
 `ptr_config.py` looks for a `hostname*` file in the directory **above** the repo,
-so `~/PTR/hostnamedev.txt` selects `configs/dev`. Without it, it falls back to the
+so `~/PTR/hostnamedpo17.txt` selects `configs/dpo17`. Without it, it falls back to the
 first three characters of the machine's hostname.
 
 ## The WEMA config
 
 `obs.py` fetches `{PTR_API_ROOT}/{wema_name}/config/` at startup and reads
-`configuration.events`, latitude, longitude and elevation from it. `configs/dev`
-uses `wema_name = 'dev'`, so a `dev` entry must exist in the config API — see step 4.
+`configuration.events`, latitude, longitude and elevation from it. `configs/dpo17`
+uses `wema_name = 'DPO'`, so a `DPO` entry must exist in the config API. Step 4 is
+only needed when the WEMA is not running; ptr-wema publishes its own config.
 `ptr_events.Events` does have a fallback, but it puts the site at Pacific/Midway.
 
 ## Devices

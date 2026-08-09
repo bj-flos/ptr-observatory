@@ -1,0 +1,18 @@
+{
+  "instance_type": "wema",
+  "wema_name": "DPO",
+  "name": "Photon Ranch Dimension Point",
+  "latitude": 32.913,
+  "longitude": -105.52528,
+  "elevation": 2194.56,
+  "reference_ambient": 10,
+  "reference_pressure": 776.0,
+  "time_offset": -7,
+  "timezone": "MST",
+  "TZ_database_name": "America/Denver",
+  "eve_cool_down_open": -65.0,
+  "morn_close_and_park": 32.0,
+  "events": {
+    "day_directory": "dpo-local"
+  }
+}
