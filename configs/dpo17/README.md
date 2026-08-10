@@ -1,77 +1,75 @@
-# Photon Ranch Dimension Point (`DPO17`)
+# Dimension Point Observatory (`DPO-17`)
 
-Runs `obs.py` on Linux with every device driven over ASCOM Alpaca, against local
-stand-ins for the Photon Ranch cloud services. No traffic reaches LCO.
+The observatory half of the Dimension Point site: `obs.py` on Linux with every
+device driven over ASCOM Alpaca, against a local Photon Ranch stack. No traffic
+reaches LCO.
+
+This directory is a **config template**, not a deployment. It stays lowercase
+(`dpo17`) because that is what `OBS_CONFIG_TEMPLATE` names; the site id it
+produces is `DPO-17`, and all four simulated sites are built from this same
+template with their own place and policy layered on.
+
+## How it actually runs
+
+In a container, alongside its wema, both supervised. See the `ptr-site`
+repository:
+
+    cd ptr-site
+    docker compose --env-file sites/dimension-point.env \
+                   --env-file sites/secrets.local.env up -d
+
+That container runs four processes: the ASCOM Alpaca Simulators, Sky Simulator,
+the wema and this observatory. `configure_site.py` copies this template to
+`configs/DPO-17` and appends the site's own values from the environment, so the
+template is the source of truth for the hardware and the env file for the
+place.
+
+Nothing is started by hand any more. Earlier versions of this file described
+launching the services and simulators individually on the host; that is no
+longer how it works, and following it now would collide with the running stack
+on every port.
 
 ## What it talks to
 
-Everything below is LCOGT handler code running locally against DynamoDB Local
-(`127.0.0.1:8001`) via `PTR/ptr-local-stack`, not a reimplementation.
+Backend services on the shared `ptr-net` network, reached by name — see
+`ptr-services`:
 
 | Port | Service | Repo |
 |---|---|---|
-| 8091 | config API | `PTR/photonranch-api` |
-| 8092 | status (enclosure, weather, site status) | `PTR/photonranch-status` |
-| 8093 | jobs (the command queue obs.py polls) | `PTR/photonranch-jobs` |
-| 8094 | calendar | `PTR/photonranch-calendar` |
-| 8095 | projects | `PTR/photonranch-projects` |
-| 8090 | **only** `/logs/newlog` | `PTR/ptr-api-stub` (no LCOGT repo implements it) |
-| 11111 | devices | ASCOM Alpaca Simulators |
+| 8091 | config API | `photonranch-api` |
+| 8092 | status | `photonranch-status` |
+| 8093 | jobs — the command queue this polls | `photonranch-jobs` |
+| 8094 | calendar | `photonranch-calendar` |
+| 8095 | projects | `photonranch-projects` |
+| 8090 | `/logs/newlog` only | `ptr-api-stub` |
 
-No traffic reaches LCO.
+Devices are two Alpaca servers inside the container:
 
-## Bringing it up
+| Port | Server | Devices |
+|---|---|---|
+| 11112 | Sky Simulator | mount, camera, guider, focuser, rotator, filter wheel |
+| 11111 | ASCOM Alpaca Simulators | dome, observing conditions, safety monitor — the wema's |
 
-    # 1. devices
-    cd ~/alpacasim/ascom.alpaca.simulators.linux-x64
-    ./ascom.alpaca.simulators --urls http://127.0.0.1:11111 &
+`OBS_ALPACA_URL` and `WEMA_ALPACA_URL` select which each config faces; both
+fall back to `ALPACA_URL`, so a site with one server needs only that.
 
-    # 2. config API (needs DynamoDB Local on 8001 first)
-    cd ~/PTR/ptr-local-stack && python3 local_api.py ../photonranch-api &
+## How this config is selected
 
-    # 3. status / jobs / calendar / projects (real LCOGT handlers)
-    cd ~/PTR/ptr-local-stack && ./run_stack.sh start && python3 seed_status.py DPO
+`ptr_config.py` reads a `hostname*` file in the directory above the repo, so
+`/app/hostnameDPO-17.txt` selects `configs/DPO-17`. The entrypoint writes it.
 
-    # 3b. the stub, for /logs/newlog only
-    cd ~/PTR/ptr-api-stub && setsid nohup node ./server.js >> stub.log 2>&1 < /dev/null &
+Note the asymmetry between the two programs, which is easy to trip over:
+`ptr-observatory` takes the name from that file **verbatim**, while `ptr-wema`
+**lowercases** `PTR_WEMA_SITE` before looking for `configs/<name>`. Rendering
+a config to the wrong case leaves the program loading the shipped template with
+none of the site's values applied, and nothing says so.
 
-    # 4. register the WEMA config this obs belongs to, once
-    curl -X PUT --data-binary @wema-dpo.json http://127.0.0.1:8091/DPO/config
-
-    # 5. run
-    cd ~/PTR/ptr-observatory && ./.venv/bin/python obs.py
-
-`.env` supplies the endpoints — copy `.env.example` and set the `PTR_*_ROOT`
-variables as described there. Without them the code defaults to LCO production,
-which is exactly what you do not want on a dev box.
-
-## How this site gets selected
-
-`ptr_config.py` looks for a `hostname*` file in the directory **above** the repo,
-so `~/PTR/hostnamedpo17.txt` selects `configs/dpo17`. Without it, it falls back to the
-first three characters of the machine's hostname.
-
-## The WEMA config
+## The wema config
 
 `obs.py` fetches `{PTR_API_ROOT}/{wema_name}/config/` at startup and reads
-`configuration.events`, latitude, longitude and elevation from it. `configs/dpo17`
-uses `wema_name = 'DPO'`, so a `DPO` entry must exist in the config API. Step 4 is
-only needed when the WEMA is not running; ptr-wema publishes its own config.
-`ptr_events.Events` does have a fallback, but it puts the site at Pacific/Midway.
-
-## Devices
-
-All four are Alpaca URLs pointing at the simulators:
-
-    mount        alpaca://127.0.0.1:11111/telescope/0
-    focuser      alpaca://127.0.0.1:11111/focuser/0
-    filter wheel alpaca://127.0.0.1:11111/filterwheel/0
-    camera       alpaca://127.0.0.1:11111/camera/0
-
-The rotator is left unassigned (`main_rotator: None`), matching tbo2. Point it at
-`alpaca://127.0.0.1:11111/rotator/0` to exercise it.
-
-## Not yet exercised
-
-Device init and the main loop work. The FITS upload path and the subprocess
-pipeline (platesolve, SEP, smartstacks) have not been run here.
+`configuration.events`, latitude, longitude and elevation from it. This site
+uses `wema_name = 'DPO'`, so a `DPO` entry must exist in the config API — the
+wema publishes its own on startup, so in normal operation there is nothing to
+do. `wema-dpo.json` here is only for standing the obs up without its wema.
+`ptr_events.Events` does have a fallback, but it puts the site at
+Pacific/Midway.
