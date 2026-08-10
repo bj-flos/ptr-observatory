@@ -1601,6 +1601,7 @@ class Camera:
             temp, humid, pressure, pwm = self.camera.Temperature, 999.9, 999.9, 0.0
         else:
             temp, humid, pressure , pwm = self._temperature()
+            self._update_temperature_display(temp, humid, pwm)
         plog("Cooling beginning @:  ", temp, " PWM%:  ", pwm)
         if 1 <= humid <= 100 or 1 <= pressure <= 1100:
             plog("Humidity and pressure:  ", humid, pressure)
@@ -2569,11 +2570,13 @@ class Camera:
             plog("failed at getting the CCD temperature")
             temptemp = 999.9
         try:
-            # Not every ASCOM camera reports cooler power; the other backends
-            # return 0 when it is unavailable.
-            pwm = self.camera.CoolerPower if self.camera.CanGetCoolerPower else 0
+            # Not every ASCOM camera reports cooler power. None rather than 0:
+            # unknown and idle are different claims, and 0% in the status panel
+            # reads as the cooler doing nothing. The one consumer of this value
+            # already tests for None.
+            pwm = self.camera.CoolerPower if self.camera.CanGetCoolerPower else None
         except Exception:
-            pwm = 0
+            pwm = None
         return temptemp, 999.9, 999.9, pwm
 
     def _ascom_cooler_on(self):
@@ -2884,6 +2887,32 @@ class Camera:
 #             seq_file.write(proto[item])
 #         seq_file.close()
 # =============================================================================
+
+    def _update_temperature_display(self, temp, humid, pwm):
+        """Fill the four status strings the UI shows for the camera.
+
+        Only the QHY path used to set these, so every other camera reported
+        'na' forever even though the values were read on every exposure.
+
+        999.9 is what the backends return for "not reported", and None means
+        the camera says it cannot measure that at all; both stay 'na' rather
+        than being shown as a number.
+        """
+        def fmt(value, unit, ndigits=1):
+            if value is None:
+                return ' na' + unit
+            try:
+                v = float(value)
+            except (TypeError, ValueError):
+                return ' na' + unit
+            if v >= 999:
+                return ' na' + unit
+            return ' ' + str(round(v, ndigits)) + unit
+
+        self.temp_C = fmt(temp, 'C')
+        self.spt_C = fmt(getattr(self, 'current_setpoint', None), 'C')
+        self.hum_percent = fmt(humid, '%', 0)
+        self.pwm_percent = fmt(pwm, '%', 0)
 
     def get_status(self):
         status = {}
@@ -4195,6 +4224,8 @@ class Camera:
         # This command takes 0.1s to do, so happens just during the start of exposures
         self.tempccdtemp, self.ccd_humidity, self.ccd_pressure, cur_pwm = (
             self._temperature())
+        self._update_temperature_display(
+            self.tempccdtemp, self.ccd_humidity, cur_pwm)
 
         block_and_focus_check_done = False
 
