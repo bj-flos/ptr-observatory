@@ -4635,14 +4635,26 @@ class Camera:
                         }
                     }
 
-                    # Here is a manual debug area which makes a pickle for debug purposes.
-                    # Default is False, but can be manually set to True for code debugging
-                    jpeg_debug = False
-                    if jpeg_debug:
-                        #NB set this path to create test pickle for makejpeg routine.
-                        pickle.dump(mainjpeg_subprocess_inputs, open('testjpegpickle', 'wb'))
-                    else:
-                        pickle.dump(mainjpeg_subprocess_inputs, jpeg_subprocess.stdin)
+                    # Optionally keep a copy of exactly what the subprocess was
+                    # sent, so a failure can be replayed against it:
+                    #     PTR_JPEG_DEBUG_PICKLE=/ptr/testjpegpickle
+                    # Unlike before, this no longer replaces the handoff --
+                    # writing the pickle and then not sending it left the
+                    # subprocess waiting and produced no image at all.
+                    jpeg_debug_path = os.environ.get("PTR_JPEG_DEBUG_PICKLE")
+                    if jpeg_debug_path:
+                        with open(jpeg_debug_path, 'wb') as debug_handle:
+                            pickle.dump(mainjpeg_subprocess_inputs, debug_handle)
+
+                    pickle.dump(mainjpeg_subprocess_inputs, jpeg_subprocess.stdin)
+                    # Both are required. The pipe is buffered (bufsize=-1), so
+                    # without the flush the pickle never leaves this process;
+                    # and closing is how the child learns the input is complete,
+                    # which is what pickle.load is waiting for. Without them the
+                    # subprocess blocks, no jpeg is written, and the upload queue
+                    # eventually reports that the file never turned up.
+                    jpeg_subprocess.stdin.flush()
+                    jpeg_subprocess.stdin.close()
                 except:
                     plog.warn("Problem in the jpeg pickle dump")
                     plog.warn(traceback.format_exc())
