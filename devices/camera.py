@@ -4551,6 +4551,12 @@ class Camera:
                     pickle.dump(photometry_subprocess_inputs, open('subprocesses/test_photometry_subprocess_pickle', 'wb'))
                 else:
                     pickle.dump(photometry_subprocess_inputs, photometry_subprocess.stdin)
+                    # Buffered, so without this the pickle never leaves the
+                    # parent and the subprocess blocks in pickle.load for as
+                    # long as it lives -- one stranded process per exposure,
+                    # and no header sidecar for the upload queue to find.
+                    photometry_subprocess.stdin.flush()
+                    photometry_subprocess.stdin.close()
             except:
                 plog.warn("Problem in the photometry pickle dump")
                 plog.warn(traceback.format_exc())
