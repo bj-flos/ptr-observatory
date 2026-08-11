@@ -4484,6 +4484,11 @@ class Camera:
                 # Send the smartstack file to the upload queue
                 self.obs.enqueue_for_fastAWS(path_to_image_directory, jpeg_name, exposure_time)
 
+                # The smartstack writes its full-resolution jpeg the same way,
+                # and it was going undelivered for the same reason.
+                self.obs.enqueue_for_fastAWS(
+                    path_to_image_directory, jpeg_name.replace('EX10', 'EX20'), exposure_time)
+
                 # Upload smartstacked jpg to LCO archive
                 if upload_metadata.get('is_lco_observation', False):
                     filepath = path_to_image_directory + jpeg_name
@@ -4670,6 +4675,13 @@ class Camera:
                 # Send the jpeg file to the upload queue
                 # Note: this is for jpgs that aren't smartstacked.
                 self.obs.enqueue_for_fastAWS( jpeg_output_dir, jpeg_name, exposure_time)
+
+                # And the full-resolution one beside it. mainjpeg writes both,
+                # but only the small one was ever sent, so the interface's main
+                # view and its 'large jpg' download were both served a
+                # thumbnail while the full frame sat in to_AWS unread.
+                self.obs.enqueue_for_fastAWS(
+                    jpeg_output_dir, jpeg_name.replace('EX10', 'EX20'), exposure_time)
 
                 # Upload non-smartstacked jpg to LCO archive
                 if upload_metadata.get('is_lco_observation', False):
