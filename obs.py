@@ -4097,7 +4097,15 @@ class Observatory:
                         continue
 
                     # If the file is there now
-                    if os.path.exists(filepath) and not "EX20" in filename:
+                    # The full-resolution jpeg was excluded here by name, which
+                    # is why queueing it achieved nothing: the file was written,
+                    # skipped by this test, re-queued every cycle for twenty
+                    # minutes and then reported as one that "seemed to never
+                    # turn up". Nothing else in this file mentions EX20, so the
+                    # exclusion was the whole of the policy, and the interface
+                    # wants the frame -- it serves EX20 as the main view and the
+                    # large download.
+                    if os.path.exists(filepath):
 
                         # First check it isn't a pipeline file to go up to the pipe queue
                         if 'pipes3_' in filename:
