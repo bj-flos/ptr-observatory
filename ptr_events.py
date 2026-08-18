@@ -470,7 +470,7 @@ class Events:
                      ('Observing Begins   ', ephem.Date(self.observing_begins)),
                      ('Naut Dusk          ', ephem.Date(self.nauticalDusk)),
                      ('Astro Dark         ', ephem.Date(self.astroDark)),
-                     ('Middle of Night    ', ephem.Date(self.middleNight)),
+                     ('Astro Midnight     ', ephem.Date(self.middleNight)),
                      ('End Astro Dark     ', ephem.Date(self.astroEnd)),
                      ('Observing Ends     ', ephem.Date(self.observing_ends)),
                      ('Naut Dawn          ', ephem.Date(self.nauticalDawn)),
