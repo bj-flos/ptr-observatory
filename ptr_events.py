@@ -454,7 +454,7 @@ class Events:
         self.evnt = [#('Eve Bias Dark      ', ephem.Date(self.cool_down_open - self.config['bias_dark interval']/1440)),
                      ('Eve Bias Dark      ', ephem.Date(self.cool_down_open - 120/1440)),
                      ('End Eve Bias Dark  ', ephem.Date(self.cool_down_open - 5/1440)),
-                     ('Ops Window Start   ', ephem.Date(self.cool_down_open)),  # Enclosure may open.
+                     ('Operational Window Start', ephem.Date(self.cool_down_open)),  # Enclosure may open.
                      ('Cool Down, Open    ', ephem.Date(self.cool_down_open)),
                      #('Eve Sky Flats      ', ephem.Date(self.sunset + self.config['eve_sky_flat_sunset_offset']/1440)),  # Nominally -35 for SRO
                      ('Eve Sky Flats      ', ephem.Date(self.sunset - 40/1440)),  # 45 minutes before sunset is usually when ECO1 with a fusty old sbig needed to do its s2 filter (well... 40 minutes really)
@@ -480,7 +480,7 @@ class Events:
                      ('Sun Rise           ', ephem.Date(self.sunrise)),
                      #('End Morn Sky Flats ', ephem.Date(self.sunrise  + self.config['morn_flat_end_offset']/1440.)),
                      ('End Morn Sky Flats ', ephem.Date(self.close_and_park - 5/1440.)), # Basically ending before close and park. Should be well done by then.
-                     ('Ops Window Closes  ', ephem.Date(self.close_and_park - 2/1440.)),
+                     ('Operational Window Closes', ephem.Date(self.close_and_park - 2/1440.)),
                      ('Close and Park     ', ephem.Date(self.close_and_park)),
 
                      ('Morn Bias Dark     ', ephem.Date(self.close_and_park + 5/1440.)),  #I guess this is warm-up time!
