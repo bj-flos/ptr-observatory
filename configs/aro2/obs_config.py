@@ -54,7 +54,6 @@ site_config = {
                     ''',  # i.e, a multi-line text block supplied by the owner.  Must be careful about the contents for now.
     'owner':  ['google-oauth2|112401903840371673242'],  # Wayne
     'owner_alias': ['ANS', 'WER'],
-    'admin_aliases': ["ANS", "WER", "TELOPS", "MF",  "TB"],
 
     # Default safety settings
     'safety_check_period': 120,  # MF's original setting was 45.

@@ -42,7 +42,6 @@ site_config = {
     'owner':  ['google-oauth2|112401903840371673242'],  # WER,  Or this can be
                                                         # some aws handle.
     'owner_alias': ['WER', 'TELOPS'],
-    'admin_aliases': ["ANS", "WER", "KVH", "TELOPS", "TB", "DH", 'KC'],
 
     "platesolve_timeout": 60, # Default should be about 45 seconds, but slower computers will take longer
 

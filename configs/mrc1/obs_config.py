@@ -54,7 +54,6 @@ site_config = {
                     ''',  # i.e, a multi-line text block supplied by the owner.  Must be careful about the contents for now.
     'owner':  ['google-oauth2|112401903840371673242'],  # Wayne
     'owner_alias': ['WER', 'TELOPS'],
-    'admin_aliases': ["ANS", "WER", "TELOPS", "TB", "DH", "KVH", "KC"],
 
     "platesolve_timeout": 60, # Default should be about 45 seconds, but slower computers will take longer
 

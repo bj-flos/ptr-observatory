@@ -90,7 +90,6 @@ site_config = {
     'owner':  ['google-oauth2|102124071738955888216', \
                'google-oauth2|112401903840371673242'],  # Neyle,
     'owner_alias': ['ANS', 'WER'],
-    'admin_aliases': ["ANS", "WER", "TELOPS", "TB"],
 
 
     "platesolve_timeout": 60, # Default should be about 45 seconds, but slower computers will take longer

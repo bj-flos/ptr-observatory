@@ -83,7 +83,6 @@ site_config = {
                     ''',    #  i.e, a multi-line text block supplied and formatted by the owner.
      'owner':  ['google-oauth2|112401903840371673242'],  # Wayne
      'owner_alias': ['WER', 'TELOPS'],
-     'admin_aliases': ["ANS", "WER", "TELOPS", "TB", "DH", "KVH", "KC"],
 
 
     # Default safety settings
