@@ -451,6 +451,15 @@ class Observatory:
 
         self.admin_owner_commands_only = self.config.get("owner_only_commands", False)
         self.assume_roof_open = self.config.get("simulate_open_roof", False)
+        # A site with no sky has no night. Where simulate_open_roof makes the
+        # obs disbelieve the shutter, this makes it disbelieve the clock: the
+        # observing window is treated as always open, so a calendar block runs
+        # whenever it is booked rather than only between Observing Begins and
+        # Observing Ends. Off everywhere by default -- on a real site this
+        # would point the telescope at a daylit sky.
+        self.assume_within_observing_window = self.config.get(
+            "simulate_observing_window", False
+        )
         self.auto_centering_off = self.config.get("auto_centering_off", False)
 
 
@@ -1151,6 +1160,26 @@ class Observatory:
                                         "Roof is now NOT assumed to be open. Reading WEMA shutter status."
                                     )
 
+                                elif cmd["action"] == "start_simulating_observing_window":
+                                    self.assume_within_observing_window = True
+                                    self.report_to_nightlog("Observing Window Simulation Turned On.")
+                                    plog(
+                                        "Observing window is now assumed to be open. Night events are ignored."
+                                    )
+                                    self.send_to_user(
+                                        "Observing window is now assumed to be open. Night events are ignored."
+                                    )
+
+                                elif cmd["action"] == "stop_simulating_observing_window":
+                                    self.assume_within_observing_window = False
+                                    self.report_to_nightlog("Observing Window Simulation Turned Off.")
+                                    plog(
+                                        "Observing window is now read from the night's events."
+                                    )
+                                    self.send_to_user(
+                                        "Observing window is now read from the night's events."
+                                    )
+
                                 elif cmd["action"] == "configure_who_can_send_commands":
                                     if (
                                         cmd["required_params"][
@@ -1729,6 +1758,7 @@ class Observatory:
                     status["obs_settings"]["auto_center_on"] = not self.auto_centering_off
                     status["obs_settings"]["admin_owner_commands_only"] = self.admin_owner_commands_only
                     status["obs_settings"]["simulating_open_roof"] = self.assume_roof_open
+                    status["obs_settings"]["simulating_observing_window"] = self.assume_within_observing_window
                     status["obs_settings"]["pointing_reference_on"] = not self.mount_reference_model_off
                     status["obs_settings"]["morning_flats_done"] = g_dev["seq"].morn_flats_done
                     status["obs_settings"]["timedottime_of_last_upload"] = time.time()

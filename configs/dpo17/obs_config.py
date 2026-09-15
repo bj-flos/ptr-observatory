@@ -41,6 +41,15 @@ site_config = {
     'has_lightning_detector': False,   # no weather hardware on a dev workstation
     'simulate_open_roof': True,        # no enclosure here; without this the
                                        # sequencer would never believe it can observe
+                                       # This also disposes of the weather: the obs
+                                       # never reads wx_hold or local_weather_ok, it
+                                       # only sees the shutter the wema closes over
+                                       # them, and this overrides that to Sim. Open.
+    'simulate_observing_window': True, # and no sky, so no night either. Without
+                                       # this a booking only runs between Observing
+                                       # Begins and Observing Ends, which on a
+                                       # simulated site means a block scheduled in
+                                       # local daylight is silently never picked up.
     'produce_fits_file_for_final_calibrations': True,
     'save_archive_versions_of_final_calibrations': False,
 
@@ -76,7 +85,11 @@ site_config = {
     # These are the default values that will be set for the obs
     # on a reboot of obs.py. They are safety checks that
     # can be toggled by an admin in the Observe tab.
-    'scope_in_manual_mode': True,
+    # False, unlike the real sites this was derived from: manual mode is the
+    # sequencer's "a human is driving" flag and it gates the calendar branch
+    # outright, so a simulated site left in it accepts bookings and then never
+    # acts on one. An admin can still switch it back on from the Observe tab.
+    'scope_in_manual_mode': False,
     'mount_reference_model_off': False,
     'sun_checks_on': False,
     'moon_checks_on': False,

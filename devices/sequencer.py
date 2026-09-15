@@ -857,7 +857,8 @@ class Sequencer:
                           # If telescope is not in manual mode.
             if (
                 (not g_dev['obs'].scope_in_manual_mode) and # Telescope not in manual mode
-                (events['Observing Begins'] <= ephem_now < events['Observing Ends']) and  # it's during observing hours
+                (g_dev['obs'].assume_within_observing_window or
+                 (events['Observing Begins'] <= ephem_now < events['Observing Ends'])) and  # it's during observing hours, or the site is simulating one
                 not self.block_guard and  # there aren't any blocks running currently
                 not g_dev["cam"].running_an_exposure_set and  # the camera isn't exposing
                 (time.time() - self.project_call_timer > 10) and  # it's been at least 10 seconds since the last project call
