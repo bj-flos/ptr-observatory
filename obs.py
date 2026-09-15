@@ -3324,21 +3324,27 @@ class Observatory:
 
                             del hdufocusdata
 
-                            platesolve_timeout_timer=time.time()
-                            while not os.path.exists(self.local_calibration_path + 'platesolve.pickle') and (time.time() - platesolve_timeout_timer) < timeout_time:
+                            # subprocess.run has already waited for the process
+                            # to exit, so the pickle it writes either exists by
+                            # now or never will. This grace is for filesystem
+                            # visibility and nothing else.
+                            #
+                            # It used to wait timeout_time here -- up to 800
+                            # seconds on a blind solve, where pixscale is None
+                            # -- on a process that had already finished. That
+                            # is how a subprocess dying on an ImportError
+                            # presented: thirteen minutes of the sequencer
+                            # repeating "Waiting for platesolve processing to
+                            # complete", with nothing to say why.
+                            platesolve_result_grace_seconds = 10
+                            platesolve_timeout_timer = time.time()
+                            while (
+                                not os.path.exists(self.local_calibration_path + 'platesolve.pickle')
+                                and (time.time() - platesolve_timeout_timer) < platesolve_result_grace_seconds
+                            ):
                                 time.sleep(0.5)
 
-                            if (time.time() - platesolve_timeout_timer) > timeout_time:
-                                plog.warn("platesolve timed out")
-                                solve = "error"
-                                # Make sure any existing subprocess is ended
-                                try:
-                                    platesolve_subprocess.kill()
-                                except:
-                                    pass
-
-
-                            elif os.path.exists(
+                            if os.path.exists(
                                 self.local_calibration_path + "platesolve.pickle"
                             ):
                                 solve = pickle.load(
@@ -3349,6 +3355,22 @@ class Observatory:
                                     )
                                 )
                             else:
+                                # Say why. stdout and stderr are captured above
+                                # and were then discarded, so a subprocess that
+                                # could not even import its dependencies failed
+                                # completely silently.
+                                plog.warn(
+                                    "platesolve produced no solution; subprocess exit code "
+                                    + str(platesolve_subprocess.returncode)
+                                )
+                                try:
+                                    stderr_text = (platesolve_subprocess.stderr or b"").decode(
+                                        "utf-8", "replace"
+                                    ).strip()
+                                    for stderr_line in stderr_text.splitlines()[-15:]:
+                                        plog.warn("platesolve subprocess: " + stderr_line)
+                                except Exception:
+                                    plog.warn("platesolve subprocess: stderr unreadable")
                                 solve = "error"
 
                             try:
