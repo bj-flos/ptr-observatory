@@ -1586,7 +1586,12 @@ class Sequencer:
         This function executes an observing block provided by a calendar event.
         """
 
+        # The second daylight guard, and the one that actually turned a booking
+        # away: the branch that picks blocks up tests Observing Begins/Ends,
+        # this tests Civil Dusk/Dawn. Manual mode used to skip it, so it only
+        # came into view once a simulated site stopped being manual.
         if not self.obs.scope_in_manual_mode and \
+            not self.obs.assume_within_observing_window and \
             (ephem.now() < g_dev['events']['Civil Dusk'] \
             or g_dev['events']['Civil Dawn'] < ephem.now() < g_dev['events']['Nightly Reset']):
             plog ("NOT RUNNING PROJECT BLOCK -- IT IS THE DAYTIME!!")
