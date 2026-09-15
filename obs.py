@@ -1355,7 +1355,7 @@ class Observatory:
                     if result is not None:
                         status[dev_type][device_name] = result
                 #breakpoint()
-            status["timestamp"] = round((time.time()) / 2.0, 3)
+            status["timestamp"] = round(time.time(), 3)
             status["send_heartbeat"] = False
 
             ## Add recent seeing information to obs status
