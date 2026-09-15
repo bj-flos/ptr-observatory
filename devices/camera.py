@@ -3345,7 +3345,13 @@ class Camera:
             observing_begins = self.obs.events['Observing Begins']
 
 
-            if imtype.lower() in ["light", "expose"] and not self.obs.scope_in_manual_mode:
+            # The gate that actually turned the booking away. centering_exposure
+            # and the platesolve worker decide whether to point; this decides
+            # whether to expose at all, and it is checked per frame -- so the
+            # block solved, re-centred, logged "Executing: ... 10" and then
+            # returned 'outsideofnighttime' before commanding a single light
+            # frame. A simulated sky has no night to be outside of.
+            if imtype.lower() in ["light", "expose"] and not self.obs.scope_in_manual_mode                     and not self.obs.assume_within_observing_window:
                 # Exposure time must end before the end of the nighttime observing window
                 if observing_ends < exposure_end_time:
                     plog("Sorry, exposures are outside of night time.")
@@ -3680,7 +3686,11 @@ class Camera:
                                 # calibrations to allow pixels to cool
                                 time.sleep(1)
 
-                            if not imtype in ['bias', 'dark'] and not a_dark_exposure and not frame_type[-4:] == "flat" and not g_dev['obs'].scope_in_manual_mode:
+                            # Same again, mid-smartstack: this one ends a run in
+                            # progress at Morn Sky Flats or Sun Rise, whichever
+                            # comes first. On a simulated site both are moments
+                            # in a sky it does not have.
+                            if not imtype in ['bias', 'dark'] and not a_dark_exposure and not frame_type[-4:] == "flat" and not g_dev['obs'].scope_in_manual_mode and not g_dev['obs'].assume_within_observing_window:
 
                                 if g_dev['events']['Morn Sky Flats'] < g_dev['events']['Sun Rise']:
                                     last_time = g_dev['events']['Morn Sky Flats']
