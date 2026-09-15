@@ -3220,8 +3220,14 @@ class Observatory:
 
                     is_osc = self.devices["main_cam"].settings["is_osc"]
 
-                    # Do not bother platesolving unless it is dark enough!!
-                    if not (
+                    # Do not bother platesolving unless it is dark enough --
+                    # unless the sky is rendered, in which case the frame is
+                    # solvable whatever the real sun is doing. This is the third
+                    # gate of the same kind: two in centering_exposure decide
+                    # whether to TAKE the exposure, this one decides whether to
+                    # solve what came back, and leaving it would have let the
+                    # centering exposure happen and still yield no pixscale.
+                    if not self.assume_within_observing_window and not (
                         g_dev["events"]["Civil Dusk"] < ephem.now() < g_dev["events"]["Civil Dawn"]
                     ):
                         plog.warn("Too bright to consider platesolving!")
