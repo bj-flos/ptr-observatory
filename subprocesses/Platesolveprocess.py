@@ -33,7 +33,6 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 from astropy.wcs import WCS
 from astropy import units as u
-from astropy.visualization.wcsaxes import Quadrangle
 warnings.simplefilter('ignore', category=AstropyUserWarning)
 warnings.simplefilter("ignore", category=RuntimeWarning)
 
@@ -713,6 +712,21 @@ if solve != 'error' and pointing_exposure and not pixscale == None:
         # r = Quadrangle((target_ra * 15 - 0.5 * y_deg_field_size, target_dec - 0.5 * x_deg_field_size)*u.deg, y_deg_field_size*u.deg, x_deg_field_size*u.deg,
         #                 edgecolor='red', facecolor='none',
         #                 transform=ax.get_transform('icrs'))
+
+        # Imported here rather than at module scope, deliberately.
+        #
+        # astropy.visualization.wcsaxes pulls in matplotlib's AnchoredEllipse,
+        # which matplotlib removed in 3.8; this image has astropy 5.3.4 against
+        # matplotlib 3.10.9, so the import raises. At module scope that killed
+        # this subprocess before it solved anything -- and the caller discards
+        # its stderr, then waits up to 800s for a pickle the dead process was
+        # supposed to write, so the failure showed only as the sequencer
+        # hanging on "Waiting for platesolve processing to complete".
+        #
+        # Down here it costs what it should cost: a red rectangle on a
+        # diagnostic jpeg, inside a try that already exists. The solve itself
+        # never needed it.
+        from astropy.visualization.wcsaxes import Quadrangle
 
         r = Quadrangle((target_ra * 15 - 0.5 * y_deg_field_size, target_dec - 0.5 * x_deg_field_size)*u.deg, y_deg_field_size*u.deg, x_deg_field_size*u.deg,
                         edgecolor='red', facecolor='none',
