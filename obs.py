@@ -450,15 +450,26 @@ class Observatory:
         self.mount_reference_model_off = self.config["mount_reference_model_off"]
 
         self.admin_owner_commands_only = self.config.get("owner_only_commands", False)
-        self.assume_roof_open = self.config.get("simulate_open_roof", False)
-        # A site with no sky has no night. Where simulate_open_roof makes the
-        # obs disbelieve the shutter, this makes it disbelieve the clock: the
-        # observing window is treated as always open, so a calendar block runs
-        # whenever it is booked rather than only between Observing Begins and
-        # Observing Ends. Off everywhere by default -- on a real site this
+        # The one declarative fact: this site has no sky and no hardware.
+        # Everything a simulator has to pretend about takes its default from
+        # here, so a new simulated site says this and nothing else, and a real
+        # site that never mentions it cannot accidentally acquire any of the
+        # pretending. The individual keys below still win where they are set,
+        # so a site can be simulated in one respect and honest in another.
+        self.site_is_simulated = self.config.get("site_is_simulated", False)
+
+        # Disbelieve the shutter. The obs never reads wx_hold or
+        # local_weather_ok -- it only sees the shutter the wema closes over
+        # them -- so this covers the weather as well as the roof.
+        self.assume_roof_open = self.config.get(
+            "simulate_open_roof", self.site_is_simulated
+        )
+        # Disbelieve the clock: the observing window is treated as always open,
+        # so a calendar block runs whenever it is booked rather than only
+        # between Observing Begins and Observing Ends. On a real site this
         # would point the telescope at a daylit sky.
         self.assume_within_observing_window = self.config.get(
-            "simulate_observing_window", False
+            "simulate_observing_window", self.site_is_simulated
         )
         self.auto_centering_off = self.config.get("auto_centering_off", False)
 
@@ -1757,6 +1768,7 @@ class Observatory:
                     status["obs_settings"]["daytime_exposure_time"] = 0.01
                     status["obs_settings"]["auto_center_on"] = not self.auto_centering_off
                     status["obs_settings"]["admin_owner_commands_only"] = self.admin_owner_commands_only
+                    status["obs_settings"]["site_is_simulated"] = self.site_is_simulated
                     status["obs_settings"]["simulating_open_roof"] = self.assume_roof_open
                     status["obs_settings"]["simulating_observing_window"] = self.assume_within_observing_window
                     status["obs_settings"]["pointing_reference_on"] = not self.mount_reference_model_off

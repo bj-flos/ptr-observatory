@@ -39,17 +39,13 @@ site_config = {
     'scope_in_engineering_mode': False,
     'auto_centering_off': False,
     'has_lightning_detector': False,   # no weather hardware on a dev workstation
-    'simulate_open_roof': True,        # no enclosure here; without this the
-                                       # sequencer would never believe it can observe
-                                       # This also disposes of the weather: the obs
-                                       # never reads wx_hold or local_weather_ok, it
-                                       # only sees the shutter the wema closes over
-                                       # them, and this overrides that to Sim. Open.
-    'simulate_observing_window': True, # and no sky, so no night either. Without
-                                       # this a booking only runs between Observing
-                                       # Begins and Observing Ends, which on a
-                                       # simulated site means a block scheduled in
-                                       # local daylight is silently never picked up.
+    # No enclosure, no sky, no hardware. This is the whole declaration: the
+    # obs derives what it has to pretend about from it -- the shutter (and so
+    # the weather, which only reaches the obs as a wema-closed roof) and the
+    # observing window. simulate_open_roof and simulate_observing_window still
+    # override it individually if a site ever needs to be simulated in one
+    # respect and honest in the other.
+    'site_is_simulated': True,
     'produce_fits_file_for_final_calibrations': True,
     'save_archive_versions_of_final_calibrations': False,
 
