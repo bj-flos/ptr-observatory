@@ -6780,7 +6780,13 @@ class Sequencer:
             self.currently_running_centering=False
             return
 
-        if not (g_dev['events']['Civil Dusk'] < ephem.now() < g_dev['events']['Civil Dawn']):
+        # A simulated sky is solvable at any hour: the sky simulator renders the
+        # field the mount is pointed at, daylight included, so the two brightness
+        # gates below are asking about a sun this camera cannot see. Skipping
+        # them is not cosmetic -- a block that starts without a centering
+        # exposure never plate solves, and the block then fails on the pixscale
+        # the solve would have set (sequencer.py execute_block).
+        if not g_dev['obs'].assume_within_observing_window and             not (g_dev['events']['Civil Dusk'] < ephem.now() < g_dev['events']['Civil Dawn']):
             plog("Too bright to consider platesolving!")
             plog("Hence too bright to do a centering exposure.")
             g_dev["obs"].send_to_user("Too bright, or early, to auto-center the image.")
@@ -6791,7 +6797,7 @@ class Sequencer:
         observing_ends = self.obs.events['Observing Ends']
         observing_begins = self.obs.events['End Eve Sky Flats']
         # Reject exposures that start before nautical dusk or end after nautical dawn
-        if now < observing_begins or now > observing_ends :
+        if not g_dev['obs'].assume_within_observing_window and             (now < observing_begins or now > observing_ends):
             plog("Too bright to consider platesolving!")
             plog("Hence too bright to do a centering exposure.")
             g_dev["obs"].send_to_user("Too bright, or early, to auto-center the image.")
