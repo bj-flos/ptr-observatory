@@ -684,14 +684,28 @@ site_config = {
                 # And debanding
                 'do_debanding' : False,
 
-                'number_of_bias_to_collect' : 64,
-                'number_of_dark_to_collect' : 64,
-                'number_of_flat_to_collect' : 10,
-                'number_of_bias_to_store' : 64,
-                'number_of_dark_to_store' : 64,
-                'number_of_flat_to_store' : 64,
+                # Sized for a rendered sky, not a real sensor.
+                #
+                # The counts these replace -- 64 biases and 64 darks at 180s --
+                # exist to beat down read noise and dark current on hardware
+                # that has both. The simulator has neither, so the extra frames
+                # average nothing down; they only take 3.4 hours of darks, which
+                # is longer than the bias-dark window itself. The collection
+                # never finished, so the masters were never stacked, so every
+                # reduction failed on a missing master bias -- 'KeyError: 1' --
+                # and with no reduction the focus photometry had nothing to
+                # measure. A full set that completes in minutes is worth more
+                # here than a statistically ideal one that never completes.
+                'number_of_bias_to_collect' : 8,
+                'number_of_dark_to_collect' : 8,
+                'number_of_flat_to_collect' : 5,
+                'number_of_bias_to_store' : 16,
+                'number_of_dark_to_store' : 16,
+                'number_of_flat_to_store' : 16,
 
-                'dark_exposure': 180,
+                # 180s of simulated dark is 180s of waiting for a frame that
+                # carries no dark current.
+                'dark_exposure': 15,
                 'has_darkslide':  False,
                 'darkslide_com':  None,
                 'shutter_type': "Electronic",
