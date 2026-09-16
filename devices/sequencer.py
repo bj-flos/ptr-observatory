@@ -5568,9 +5568,22 @@ class Sequencer:
 
 
             #  If more than 15 attempts, fail and bail out.
-            # But don't bail out if the scope isn't commissioned yet, keep on finding.
+            #
+            # An uncommissioned scope is given a longer search, because it has
+            # no calculated best guess to fall back on -- but not an unlimited
+            # one, which is what "keep on finding" used to mean.
+            #
+            # This routine holds total_sequencer_control for its whole
+            # duration, and obs.scan_requests will not dequeue a command while
+            # it does. So a focus run that cannot converge does not merely fail
+            # slowly: it takes the observatory with it, and keeps out the very
+            # commands that would fix it. DPO-17 sat in that loop through an
+            # entire booking, rejecting its own calibration job, because the
+            # photometry it needs has no master frames to work from and the
+            # search had no end.
+            focus_attempt_limit = 15 if g_dev['foc'].focus_commissioned else 30
 
-            if position_counter > 15 and g_dev['foc'].focus_commissioned:
+            if position_counter > focus_attempt_limit:
                 g_dev['foc'].set_initial_best_guess_for_focus()
                 if not dont_return_scope:
                     plog("Returning to RA:  " +str(start_ra) + " Dec: " + str(start_dec))
