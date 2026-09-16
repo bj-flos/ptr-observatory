@@ -5205,7 +5205,33 @@ class Sequencer:
         self.total_sequencer_control=False
 
 
-    def auto_focus_script(self, req, opt, throw=None, begin_at=None, skip_timer_check=False, dont_return_scope=False, dont_log_focus=False, skip_pointing=False, extensive_focus=None, filter_choice='focus'):
+    def auto_focus_script(self, *args, **kwargs):
+        """Run the focus routine and give the sequencer back whatever happens.
+
+        The body holds total_sequencer_control for its duration, and
+        obs.scan_requests dequeues no command at all while it is held -- so an
+        unhandled exception in there does not fail a focus run, it takes the
+        observatory offline until someone restarts the process. DPO-17 spent
+        eleven hours that way, publishing status, accepting nothing, with four
+        jobs queued behind it including the stop that was meant to free it.
+
+        The flag is only cleared if this call is what set it. A focus run
+        invoked from inside another script -- bias_dark_script and the block
+        sequences do this -- must not release control the caller still holds.
+        """
+        held_by_caller = self.total_sequencer_control
+        try:
+            return self._auto_focus_script(*args, **kwargs)
+        except Exception:
+            plog("Autofocus aborted by an exception; releasing the sequencer.")
+            plog(traceback.format_exc())
+            return np.nan, np.nan
+        finally:
+            self.focussing = False
+            if not held_by_caller:
+                self.total_sequencer_control = False
+
+    def _auto_focus_script(self, req, opt, throw=None, begin_at=None, skip_timer_check=False, dont_return_scope=False, dont_log_focus=False, skip_pointing=False, extensive_focus=None, filter_choice='focus'):
         self.focussing=True
         self.total_sequencer_control = True
 

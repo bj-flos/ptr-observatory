@@ -206,6 +206,14 @@ def sep_focus_catalog(image, minarea, gain):
     pixel_centroid_y. Nothing else needs to know which one measured the frame.
     """
     data = np.ascontiguousarray(image, dtype=np.float32)
+    # The zero-threshold upstream sets every sub-sky pixel to NaN, and SEP
+    # needs finite data. Fill with the median of what is left rather than zero,
+    # so the background estimate is not dragged down by the fill itself.
+    if np.isnan(data).any():
+        fill = np.nanmedian(data)
+        if not np.isfinite(fill):
+            fill = 0.0
+        data = np.nan_to_num(data, nan=fill, posinf=fill, neginf=fill)
     # SEP wants the background gone before it detects anything.
     background = sep.Background(data)
     subtracted = data - background.back()
@@ -6020,6 +6028,7 @@ class Camera:
                                          "'; measuring focus with SEP instead.")
                                     sep_catalog = sep_focus_catalog(outputimg, minarea, segain)
                                 else:
+                                    spp_failed = False
                                     try:
                                         result = subprocess.run(
                                             cmd,
@@ -6031,8 +6040,22 @@ class Camera:
                                         print(result.stdout)
                                     except subprocess.TimeoutExpired:
                                         print("✖ sourcextractor++ timed out")
+                                        spp_failed = True
                                     except subprocess.CalledProcessError as e:
                                         print(f"⚠️ exited with code {e.returncode}")
+                                        spp_failed = True
+
+                                    # Installed but unable to answer is the same
+                                    # problem as not installed at all, and it is
+                                    # the case that actually happens: it exits 1
+                                    # on a frame it cannot solve, writes no
+                                    # catalogue, and the Table.read below then
+                                    # raises on a file that was never created --
+                                    # which took the whole focus run with it.
+                                    catalogue_path = tempdir + tempfitsname.replace('.fits', 'cat.fits')
+                                    if spp_failed or not os.path.exists(catalogue_path):
+                                        plog("sourcextractor++ produced no catalogue; measuring focus with SEP instead.")
+                                        sep_catalog = sep_focus_catalog(outputimg, minarea, segain)
 
                                 print ("s++: " + str(time.time()-googtime))
                                 try:
