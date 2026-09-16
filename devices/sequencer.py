@@ -907,15 +907,15 @@ class Sequencer:
                         block = current_observation['event']
                         if pointing_is_ok(block, self.config):
                             self.execute_block(block)  # In this we need to ultimately watch for weather holds.
-                            self.schedule_manager.add_completed_id(current_observation['id'])
+                            self.schedule_manager.add_completed_id(self.schedule_manager.completion_key(current_observation))
                         else:
                             plog(f'Tried to observe PTR project {block["project_id"]} but pointing check failed')
-                            self.schedule_manager.add_completed_id(current_observation['id'])
+                            self.schedule_manager.add_completed_id(self.schedule_manager.completion_key(current_observation))
 
                     # Catch if there's a bug with the origin. This should never run.
                     else:
                         plog(f'WARNING: Unknown origin for observation {current_observation}')
-                        self.schedule_manager.add_completed_id(current_observation['id'])
+                        self.schedule_manager.add_completed_id(self.schedule_manager.completion_key(current_observation))
                 except:
                     plog(traceback.format_exc())
                     plog("Exception encountered in the sequencer.")

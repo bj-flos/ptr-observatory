@@ -238,15 +238,36 @@ class NightlyScheduleManager:
         ptr_thread.join()
 
 
-    def add_completed_id(self, id):
+    def completion_key(self, schedule_entry):
+        """What makes an observation the same obligation as one already run.
+
+        Not the event id on its own. A calendar event keeps its id when it is
+        rescheduled, so an id that had been run once was skipped forever after
+        -- silently, because the filter in get_observation_to_run drops it
+        before anything is logged. Moving a booking to a new time is a new
+        obligation and has to read as one.
+
+        So the times are part of the key, and last_modified with them, which
+        catches an edit that leaves the times alone. last_modified is absent on
+        lco events; start and end are on both, so the key works either way.
+        """
+        event = schedule_entry.get("event") or {}
+        return "|".join(str(part) for part in (
+            schedule_entry.get("id"),
+            schedule_entry.get("start"),
+            schedule_entry.get("end"),
+            event.get("last_modified", "") if isinstance(event, dict) else "",
+        ))
+
+    def add_completed_id(self, key):
         """ Mark this event as complete, so we can avoid trying to run it again """
         with self._lock:
-            self._completed_ids.append(id)
+            self._completed_ids.append(key)
 
-    def check_is_completed(self, id):
+    def check_is_completed(self, key):
         """ Check if an event has been marked as completed"""
         with self._lock:
-            return id in self._completed_ids
+            return key in self._completed_ids
 
     def clear_completed_ids(self):
         """ Clear the list of completed events """
@@ -351,7 +372,7 @@ class NightlyScheduleManager:
 
         with self._lock:
             events = self.get_active_events(unix_time)
-            events = [x for x in events if not self.check_is_completed(x["id"])]
+            events = [x for x in events if not self.check_is_completed(self.completion_key(x))]
 
             for event in events:
                 # First check for scheduler events, and return the first one if available
