@@ -202,8 +202,12 @@ def sep_focus_catalog(image, minarea, gain):
     question without a new package.
 
     The column names are sourcextractor++'s, because everything downstream
-    reads them: flux_radius, area, ellipticity, pixel_centroid_x and
-    pixel_centroid_y. Nothing else needs to know which one measured the frame.
+    reads them: flux_radius, area, ellipticity, kron_radius, pixel_centroid_x
+    and pixel_centroid_y. Nothing else needs to know which one measured the
+    frame -- and a column that is merely missing does not read as missing: the
+    KeyError is caught upstream as "probably not enough detections", so the
+    table looks empty rather than incomplete. kron_radius was left out of the
+    first version of this and cost exactly that confusion.
     """
     data = np.ascontiguousarray(image, dtype=np.float32)
     # The zero-threshold upstream sets every sub-sky pixel to NaN, and SEP
@@ -226,7 +230,7 @@ def sep_focus_catalog(image, minarea, gain):
     )
     if len(sources) == 0:
         return Table({name: np.array([]) for name in
-                      ('flux_radius', 'area', 'ellipticity',
+                      ('flux_radius', 'area', 'ellipticity', 'kron_radius',
                        'pixel_centroid_x', 'pixel_centroid_y')})
 
     # Half-light radius, which is what sourcextractor++ reports as flux_radius
@@ -242,10 +246,20 @@ def sep_focus_catalog(image, minarea, gain):
     with np.errstate(divide='ignore', invalid='ignore'):
         ellipticity = 1.0 - (sources['b'] / sources['a'])
 
+    # Kron radius, in units of the object's own ellipse, as sourcextractor++
+    # reports it. sep.kron_radius takes the ellipse as its inverse second
+    # moments, which is what a/b/theta describe.
+    kron_radius, kron_flags = sep.kron_radius(
+        subtracted, sources['x'], sources['y'],
+        sources['a'], sources['b'], sources['theta'], 6.0
+    )
+    kron_radius = np.where(kron_flags == 0, kron_radius, np.nan)
+
     return Table({
         'flux_radius': np.asarray(flux_radius, dtype=float),
         'area': np.asarray(sources['npix'], dtype=float),
         'ellipticity': np.asarray(ellipticity, dtype=float),
+        'kron_radius': np.asarray(kron_radius, dtype=float),
         'pixel_centroid_x': np.asarray(sources['x'], dtype=float),
         'pixel_centroid_y': np.asarray(sources['y'], dtype=float),
     })
