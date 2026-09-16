@@ -19,6 +19,7 @@ from devices.darkslide import Darkslide
 import matplotlib.style as mplstyle
 import matplotlib as mpl
 import subprocess
+import shutil
 import warnings
 # from scipy.ndimage import gaussian_filter
 from astropy.utils.exceptions import AstropyUserWarning
@@ -188,6 +189,58 @@ warnings.simplefilter("ignore", category=RuntimeWarning)
 #     plt.tight_layout()
 #     plt.savefig(str(time.time())+'brightstarplots.png', dpi=300, bbox_inches='tight')
 #     plt.close()
+
+
+def sep_focus_catalog(image, minarea, gain):
+    """A focus catalogue from SEP, shaped like sourcextractor++'s.
+
+    sourcextractor++ is an external binary and is not always installed -- the
+    ptr-site image ships classic source-extractor, whose command line is
+    nothing like the one built below, so the call raises FileNotFoundError and
+    every focus point is discarded. SEP is a python dependency of this repo and
+    is already used for the science photometry, so it can answer the same
+    question without a new package.
+
+    The column names are sourcextractor++'s, because everything downstream
+    reads them: flux_radius, area, ellipticity, pixel_centroid_x and
+    pixel_centroid_y. Nothing else needs to know which one measured the frame.
+    """
+    data = np.ascontiguousarray(image, dtype=np.float32)
+    # SEP wants the background gone before it detects anything.
+    background = sep.Background(data)
+    subtracted = data - background.back()
+    sources = sep.extract(
+        subtracted,
+        thresh=5.0,
+        err=background.globalrms,
+        minarea=max(int(minarea), 1),
+        gain=gain if gain else None,
+    )
+    if len(sources) == 0:
+        return Table({name: np.array([]) for name in
+                      ('flux_radius', 'area', 'ellipticity',
+                       'pixel_centroid_x', 'pixel_centroid_y')})
+
+    # Half-light radius, which is what sourcextractor++ reports as flux_radius
+    # under --flux-fraction 0.5.
+    flux_radius, flags = sep.flux_radius(
+        subtracted, sources['x'], sources['y'],
+        6.0 * sources['a'], 0.5, normflux=sources['flux'], subpix=5
+    )
+    flux_radius = np.where(flags == 0, flux_radius, np.nan)
+
+    # a is the semi-major axis and b the semi-minor, so this is the same
+    # 1 - b/a that sourcextractor++ calls ellipticity.
+    with np.errstate(divide='ignore', invalid='ignore'):
+        ellipticity = 1.0 - (sources['b'] / sources['a'])
+
+    return Table({
+        'flux_radius': np.asarray(flux_radius, dtype=float),
+        'area': np.asarray(sources['npix'], dtype=float),
+        'ellipticity': np.asarray(ellipticity, dtype=float),
+        'pixel_centroid_x': np.asarray(sources['x'], dtype=float),
+        'pixel_centroid_y': np.asarray(sources['y'], dtype=float),
+    })
 
 
 # def plot_sourcextractor_pp(outputimg,catalog,
@@ -5957,24 +6010,37 @@ class Camera:
                                     "--tile-memory-limit", "16384",
                                 ]
 
-                                try:
-                                    result = subprocess.run(
-                                        cmd,
-                                        capture_output=True,  # if you want stdout/stderr in result.stdout, result.stderr
-                                        text=True,            # decode bytes to str
-                                        timeout=300,          # kill if >300 s
-                                        check=True            # raise if exit-code ≠ 0
-                                    )
-                                    print(result.stdout)
-                                except subprocess.TimeoutExpired:
-                                    print("✖ sourcextractor++ timed out")
-                                except subprocess.CalledProcessError as e:
-                                    print(f"⚠️ exited with code {e.returncode}")
+                                # An absent binary raises FileNotFoundError,
+                                # which neither handler below catches, so it
+                                # used to surface as "couldn't do blob
+                                # photometry" with no mention of the tool.
+                                sep_catalog = None
+                                if shutil.which(cmd[0]) is None:
+                                    plog("sourcextractor++ not on PATH as '" + str(cmd[0]) +
+                                         "'; measuring focus with SEP instead.")
+                                    sep_catalog = sep_focus_catalog(outputimg, minarea, segain)
+                                else:
+                                    try:
+                                        result = subprocess.run(
+                                            cmd,
+                                            capture_output=True,  # if you want stdout/stderr in result.stdout, result.stderr
+                                            text=True,            # decode bytes to str
+                                            timeout=300,          # kill if >300 s
+                                            check=True            # raise if exit-code ≠ 0
+                                        )
+                                        print(result.stdout)
+                                    except subprocess.TimeoutExpired:
+                                        print("✖ sourcextractor++ timed out")
+                                    except subprocess.CalledProcessError as e:
+                                        print(f"⚠️ exited with code {e.returncode}")
 
                                 print ("s++: " + str(time.time()-googtime))
                                 try:
                                     googtime=time.time()
-                                    catalog=Table.read(tempdir+ tempfitsname.replace('.fits','cat.fits'))
+                                    if sep_catalog is not None:
+                                        catalog = sep_catalog
+                                    else:
+                                        catalog=Table.read(tempdir+ tempfitsname.replace('.fits','cat.fits'))
 
                                     original_catalog=copy.deepcopy(catalog)
 
