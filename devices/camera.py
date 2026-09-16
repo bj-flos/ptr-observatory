@@ -5701,6 +5701,20 @@ class Camera:
                     del hdu
                     focus_position = g_dev['foc'].current_focus_position
 
+                    # What the photometry below reports when it finds nothing.
+                    # It is assigned inside the try and read after it, so any
+                    # failure in there raised UnboundLocalError from the read
+                    # instead of the real error -- which was printed directly
+                    # above it and then buried. Defaulted here, a failure now
+                    # reads as a point with no detections, which is what it is.
+                    fwhm_dict = {
+                        'rfp': np.nan,
+                        'rfr': np.nan,
+                        'rfs': np.nan,
+                        'sky': 200,
+                        'sources': '0',
+                    }
+
                     try:
                         # Cut down focus image to central degree
                         fx, fy = outputimg.shape
@@ -5791,7 +5805,17 @@ class Camera:
                                 zeroValue = test
                                 break
 
-                        # 6) apply your zero‐threshold
+                        # 6) apply your zero-threshold
+                        #
+                        # outputimg is float here only because the in-line
+                        # reduction above subtracted a dark and divided by a
+                        # flat. A site with no master frames yet skips that --
+                        # it is wrapped in its own try -- and keeps the
+                        # camera's integer array, where NaN does not fit:
+                        # "cannot convert float NaN to integer" ended every
+                        # focus point before a single one was measured.
+                        if not np.issubdtype(outputimg.dtype, np.floating):
+                            outputimg = outputimg.astype(np.float32)
                         outputimg[outputimg < zeroValue] = np.nan
                         del unique
                         del counts
