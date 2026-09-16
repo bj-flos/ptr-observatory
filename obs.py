@@ -1603,12 +1603,33 @@ class Observatory:
 
             try:
                 # Keep an eye on the stop-script and exposure halt time to reset those timers.
-                if self.devices["sequencer"].stop_script_called and (
-                    (time.time() - self.devices["sequencer"].stop_script_called_time) > 35
+                # A stop stays pending until something honours it, rather than
+                # expiring on a stopwatch.
+                #
+                # It used to clear after 35 seconds. The autofocus loop tests it
+                # once per attempt and an attempt is about 70 -- a 5s exposure,
+                # photometry, then a focuser move -- so a stop could be raised
+                # and expire between two consecutive checks and do nothing at
+                # all. That is the worst possible moment for a stop button to
+                # be unavailable: the script it cannot interrupt is the one
+                # that has stopped making progress.
+                #
+                # Cleared instead when no script is left running, which is what
+                # "the stop was honoured" means. The long backstop is only so a
+                # flag cannot outlive the thing it was meant to stop if that
+                # thing dies without clearing its own state.
+                sequencer = self.devices["sequencer"]
+                nothing_is_running = (
+                    not sequencer.total_sequencer_control
+                    and not self.devices["main_cam"].running_an_exposure_set
+                )
+                if sequencer.stop_script_called and (
+                    nothing_is_running
+                    or (time.time() - sequencer.stop_script_called_time) > 600
                 ):
                     self.send_to_user("Stop Script Complete.")
-                    self.devices["sequencer"].stop_script_called = False
-                    self.devices["sequencer"].stop_script_called_time = time.time()
+                    sequencer.stop_script_called = False
+                    sequencer.stop_script_called_time = time.time()
 
                 if self.exposure_halted_indicator and (time.time() - self.exposure_halted_indicator_timer) > 12:
                     self.exposure_halted_indicator = False
