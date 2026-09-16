@@ -5241,8 +5241,14 @@ class Sequencer:
         if throw==None:
             throw= focuser.config['throw']
 
-        if (ephem.now() < g_dev['events']['End Eve Bias Dark'] ) or \
-            (g_dev['events']['End Morn Bias Dark']  < ephem.now() < g_dev['events']['Nightly Reset']):
+        # The sixth gate of this kind, and the last one in the focus path:
+        # two in centering_exposure decide whether to point, one in the
+        # platesolve worker whether to solve, two in expose_command whether
+        # to expose, and this one whether to focus at all. A simulated sky
+        # has no daytime to be in.
+        if not g_dev['obs'].assume_within_observing_window and \
+            ((ephem.now() < g_dev['events']['End Eve Bias Dark'] ) or \
+            (g_dev['events']['End Morn Bias Dark']  < ephem.now() < g_dev['events']['Nightly Reset'])):
             plog ("NOT DOING AUTO FOCUS -- IT IS THE DAYTIME!!")
             g_dev["obs"].send_to_user("An auto focus was rejected as it is during the daytime.")
             self.focussing=False
