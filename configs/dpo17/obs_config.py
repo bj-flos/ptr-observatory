@@ -601,11 +601,26 @@ site_config = {
                 # from the 15th of the month to the 15 of the month
                 #
                 # ( setpoint, day_warm_difference, day_warm troe our false)
+                # Day-warm off, third element of each tuple.
+                #
+                # A rendered sensor has nothing to protect: there is no dark
+                # current to suppress and no real cooler to spare. What the
+                # warming did have was a cost -- the setpoint went to 5 + 8 =
+                # 13C, calibration accepts frames only within
+                # temp_setpoint_tolerance of the setpoint, and so every
+                # calibration frame requested in daylight was refused:
+                # "temperature out of +/- range for calibrations (13.0)". The
+                # run stopped after twenty darks with no biases at all, which
+                # is the master the reduction actually needs.
+                #
+                # Note the standalone 'day_warm': False below does NOT control
+                # this. These tuples win while set_temp_setpoint_by_season is
+                # on, so the two disagreed and the table was the one being read.
                 'set_temp_setpoint_by_season' : True,
-                'temp_setpoint_nov_to_feb' : ( 5, 8, True),
-                'temp_setpoint_feb_to_may' : ( 5, 8, True),
-                'temp_setpoint_may_to_aug' : ( 1, 8, True),
-                'temp_setpoint_aug_to_nov' : ( 5, 8, True),
+                'temp_setpoint_nov_to_feb' : ( 5, 8, False),
+                'temp_setpoint_feb_to_may' : ( 5, 8, False),
+                'temp_setpoint_may_to_aug' : ( 1, 8, False),
+                'temp_setpoint_aug_to_nov' : ( 5, 8, False),
 
 
                 'temp_setpoint': 4,
