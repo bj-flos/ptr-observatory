@@ -5695,10 +5695,33 @@ class Camera:
                     hdusmallheader = copy.deepcopy(hdu.header)
                     del hdu
 
+                    # A source extractor needs a background to measure, not a
+                    # floor. Subtracting the bias/dark master leaves the sky
+                    # centred on zero wherever the sky is genuinely dark, and
+                    # clipping there deletes the whole lower half of the noise:
+                    # two thirds of the frame comes out exactly zero, the
+                    # background mesh collapses on the spikes that remain, and
+                    # solve-field is handed 2 sources out of the 22 the raw
+                    # frame has. Latent at every site, fatal only where the sky
+                    # is dark -- a simulated site has no sky glow above the
+                    # pedestal at all, so every pointing check failed.
+                    #
+                    # Offset by the low tail rather than the minimum, so a
+                    # single cold pixel cannot set the pedestal for the whole
+                    # frame, and only ever upwards: a frame that already sits
+                    # above zero is left exactly where it was.
+                    solve_image = outputimg
+                    low_tail = np.nanpercentile(solve_image, 0.1)
+                    if low_tail < 0:
+                        solve_image = solve_image - low_tail
+                    # The bad pixel mask writes NaN, and NaN through an
+                    # unsigned cast is whatever the platform says it is.
+                    solve_image = np.nan_to_num(solve_image, nan=0.0)
+
                     g_dev['obs'].platesolve_is_processing =True
                     g_dev['obs'].to_platesolve(
                         (
-                            np.maximum(outputimg, 0).astype(np.uint16),
+                            np.maximum(solve_image, 0).astype(np.uint16),
                             hdusmallheader,
                             cal_path,
                             cal_name,
