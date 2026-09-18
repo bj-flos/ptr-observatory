@@ -2061,7 +2061,18 @@ class Sequencer:
                                     self.total_sequencer_control=False
                                     g_dev['obs'].report_to_nightlog("Ending Calendar Block: " + str(block))
                                     return block_specification
-                            result = g_dev['cam'].expose_command(req, opt, user_name=user_name, user_id=user_id, solve_it=False, calendar_event_id=calendar_event_id) #, zoom_factor=zoom_factor)
+                            # Which project exposure these frames belong to, so
+                            # the camera can count each one against it as it
+                            # lands. Cleared straight after: a focus or pointing
+                            # frame taken between blocks must not be counted.
+                            g_dev['obs'].current_project_exposure = {
+                                'project_id': block['project_id'],
+                                'exposure_index': block_exposure_counter,
+                            }
+                            try:
+                                result = g_dev['cam'].expose_command(req, opt, user_name=user_name, user_id=user_id, solve_it=False, calendar_event_id=calendar_event_id) #, zoom_factor=zoom_factor)
+                            finally:
+                                g_dev['obs'].current_project_exposure = None
 
                             try:
                                 if result == 'blockend':

@@ -45,7 +45,8 @@ import bottleneck as bn
 import numpy as np
 
 import requests
-from ptr_endpoints import PTR_API_ROOT, PTR_JOBS_ROOT, PTR_LOGS_ROOT, PTR_STATUS_ROOT
+from ptr_endpoints import (PTR_API_ROOT, PTR_JOBS_ROOT, PTR_LOGS_ROOT,
+                           PTR_PROJECTS_ROOT, PTR_STATUS_ROOT)
 import urllib.request
 import traceback
 import psutil
@@ -434,6 +435,11 @@ class Observatory:
         )  # Boolean, check if .env present
         self.stop_processing_command_requests = False
         self.platesolve_is_processing = False
+        # Which project exposure the sequencer is currently taking, so a frame
+        # can be reported against it as it completes. Set by execute_block and
+        # cleared by it; None whenever nothing project-driven is running, which
+        # is what stops a focus or pointing frame being counted as progress.
+        self.current_project_exposure = None
         self.stop_all_activity = False  # This is used to stop the camera or sequencer
         self.exposure_halted_indicator = False
         self.camera_sufficiently_cooled_for_calibrations = True
@@ -4473,6 +4479,63 @@ class Observatory:
             else:
                 # Need this to be as LONG as possible to allow large gaps in the GIL. Lower priority tasks should have longer sleeps.
                 time.sleep(3)
+
+    def report_project_exposure(self, base_filename):
+        """Count one completed exposure against the project that asked for it.
+
+        Nothing did this. A project ran, uploaded its images, and finished with
+        remaining still reading the count it started with -- so the interface
+        showed no progress, and deplete/cycle scheduling had nothing to work
+        from. The endpoint has been there the whole time and says so in its own
+        docstring: "When an observatory captures and uploads an image requested
+        in a project, it should use this endpoint."
+
+        Reported per frame rather than per expose_command, because one command
+        takes `repeat` of them and some of those may not survive the block.
+
+        Sent from a thread: this is called from the exposure path, and a
+        projects API that has gone slow must not hold up the next frame. The
+        identity is read here rather than in the thread, because the sequencer
+        clears it as soon as the exposure set returns.
+        """
+        progress = self.current_project_exposure
+        if not progress:
+            return
+
+        project_id = progress.get('project_id') or ''
+        # "none" is the stored value for a booking with no project attached.
+        if project_id == 'none' or '#' not in project_id:
+            return
+        project_name, created_at = project_id.split('#', 1)
+
+        threading.Thread(
+            target=self._post_project_exposure,
+            args=(project_name, created_at,
+                  progress.get('exposure_index', 0), base_filename),
+            daemon=True,
+        ).start()
+
+    def _post_project_exposure(self, project_name, created_at,
+                               exposure_index, base_filename):
+        """The call itself. Never raises, never retries.
+
+        A dropped count is a wrong number on a progress bar; the next frame
+        reports again, and an exception on this thread would be silent anyway.
+        """
+        try:
+            requests.post(
+                PTR_PROJECTS_ROOT + '/add-project-data',
+                json={
+                    'project_name': project_name,
+                    'created_at': created_at,
+                    'exposure_index': exposure_index,
+                    'base_filename': base_filename,
+                },
+                timeout=10,
+            )
+        except Exception as e:
+            plog.warn('could not report %s against project %s: %s'
+                      % (base_filename, project_name, e))
 
     def send_to_user(self, p_log, p_level="INFO"):
         # This is now a queue--- it was actually slowing

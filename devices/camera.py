@@ -4466,6 +4466,15 @@ class Camera:
             not a_dark_exposure and
             not focus_image):
 
+            # A science frame, which is the only kind a project asks for --
+            # flats, biases, darks, pointing and focus frames have all been
+            # excluded above. Count it against whichever project exposure the
+            # sequencer is currently running; it is a no-op when that is None.
+            #
+            # The name is the one the image is indexed under downstream: the
+            # jpeg's, without its frame suffix.
+            g_dev['obs'].report_project_exposure(jpeg_name.rsplit('-', 1)[0])
+
             ######### Trigger off threads to wait for their respective files
 
             ## Spin up tha main post_processing_thread
